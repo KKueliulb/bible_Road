@@ -33,3 +33,8 @@ export interface BookProgressDoc {
   status: BookProgressStatus;
   completedAt: number | null;
 }
+
+export interface ParticipantDoc {
+  nickname: string;
+  joinedAt: number;
+}

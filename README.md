@@ -2,7 +2,7 @@
 
 교회 청년부 대상 성경 통독 습관 앱. Expo(React Native) + Firebase(Firestore/FCM) 기반.
 
-> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~3단계 (프로젝트 셋업 / 정적 데이터 시딩 / 인증)**.
+> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~4단계 (프로젝트 셋업 / 정적 데이터 시딩 / 인증 / 홈 로드맵)**.
 
 ## 시작하기
 
@@ -56,20 +56,33 @@ npm run seed:books
 ```
 src/
   App.tsx                    # 엔트리 컴포넌트 (Provider 조합)
-  navigation/                # RootNavigator, AuthStack, MainTabs
+  navigation/                # RootNavigator, AuthStack, MainTabs, RoadmapStack
   screens/
     auth/                    # LoginScreen, SignupScreen
+    roadmap/                 # RoadmapScreen (홈 로드맵)
+    reading/                 # ReadingPlaceholderScreen (5단계에서 실제 구현 예정)
     placeholder/             # 다음 단계에서 채워질 화면 자리표시자
+  components/roadmap/         # TestamentDropdown, RoadmapNode, ParticipantListInline
   context/AuthContext.tsx    # 로그인 상태, 세션 복원
   services/
     firebase.ts              # Firebase 초기화
     usersService.ts          # users 컬렉션 CRUD
+    booksService.ts           # books 컬렉션 조회 (구약/신약 필터)
+    bookProgressService.ts    # users/{userId}/bookProgress 조회
+    participantsService.ts    # bookParticipants/{bookId}/members 조회/등록
   data/books.ts               # 66권 정적 데이터
   scripts/seedBooks.ts         # books 컬렉션 시딩 스크립트 (firebase-admin)
   types/models.ts              # Firestore 데이터 모델 타입
   constants/theme.ts            # 색상 등 최소 디자인 토큰 (폴리싱은 이후 단계)
 ```
 
+## 홈 로드맵 (4단계)
+
+- 구약/신약 드롭다운으로 전환하면 해당 테스타먼트의 책들이 지그재그 노드로 표시됩니다.
+- 노드 색상으로 완독/진행중/미시작 상태를 구분합니다. 진행 상태는 `users/{userId}/bookProgress` 문서(없으면 미시작, `currentBookId`와 같으면 진행중)로 판단합니다.
+- 진행중인 책 노드 아래에는 함께 읽는 참여자 목록이 인라인으로 표시됩니다.
+- 노드를 누르면 `bookParticipants/{bookId}/members/{userId}`에 자동으로 참여 등록되고, 읽기 화면(현재는 placeholder)으로 이동합니다.
+
 ## 다음 단계
 
-홈 로드맵 화면(4단계)부터 이어서 진행 예정입니다. 자세한 로드맵은 설계 문서를 참고하세요.
+읽기 화면(5단계: 체크리스트, 읽었어요/N장 더 읽었어요, 밀린 장수 계산)부터 이어서 진행 예정입니다. 자세한 로드맵은 설계 문서를 참고하세요.
