@@ -106,7 +106,7 @@ src/
 assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OFL-1.1, LICENSE.txt 참고)
 ```
 
-> `eas.json`과 `app.json`의 `android.package`/`googleServicesFile`/`expo-notifications` 플러그인 설정은 원격 푸시(Cloud Functions 기반 화이팅 알림)를 시도했다가 서버 비용 없이 가는 쪽으로 방향을 바꾸면서 남은 흔적입니다. 지금은 로컬 알림만 쓰므로 당장 필요하지 않지만, 나중에 EAS Build 자체가 다시 필요해지면(원격 푸시를 되살리거나 스토어 배포 시) 그대로 쓸 수 있어 남겨뒀습니다.
+> 원격 푸시(Cloud Functions 기반 화이팅 알림)를 시도했다가 서버 비용 없는 쪽으로 방향을 바꾸면서, SDK도 54로 되돌리고 그 시도에서만 필요했던 설정(`google-services.json` 참조 등)은 정리했습니다. `eas.json`과 `app.json`의 `android.package`는 나중에 EAS Build(스토어 배포 등)가 다시 필요해질 때를 대비해 남겨뒀고, `expo-notifications` 플러그인 설정(아이콘/색상)은 지금 쓰는 로컬 알림에도 그대로 적용됩니다.
 
 ## 홈 로드맵 (4단계)
 
