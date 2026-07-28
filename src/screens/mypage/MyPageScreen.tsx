@@ -5,6 +5,7 @@ import { changeNickname } from '../../services/usersService';
 import { computeLiveOverdueChapters, computeLiveStreakDays } from '../../services/readingService';
 import { NICKNAME_CHANGE_LIMIT } from '../../constants/profileConfig';
 import Avatar from '../../components/common/Avatar';
+import HelpModal from '../../components/mypage/HelpModal';
 import { colors, radius, spacing, typography } from '../../constants/theme';
 
 export default function MyPageScreen() {
@@ -13,6 +14,7 @@ export default function MyPageScreen() {
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [nicknameSuccess, setNicknameSuccess] = useState(false);
   const [isChangingNickname, setIsChangingNickname] = useState(false);
+  const [isHelpVisible, setIsHelpVisible] = useState(false);
 
   if (!userId || !user) {
     return <ActivityIndicator color={colors.navy} style={styles.spinner} />;
@@ -109,9 +111,15 @@ export default function MyPageScreen() {
       {nicknameError && <Text style={styles.error}>{nicknameError}</Text>}
       {nicknameSuccess && <Text style={styles.success}>닉네임이 변경됐어요.</Text>}
 
+      <Pressable style={styles.helpButton} onPress={() => setIsHelpVisible(true)}>
+        <Text style={styles.helpButtonText}>❓ 도움말</Text>
+      </Pressable>
+
       <Pressable style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutButtonText}>로그아웃</Text>
       </Pressable>
+
+      <HelpModal visible={isHelpVisible} onClose={() => setIsHelpVisible(false)} />
     </ScrollView>
   );
 }
@@ -221,9 +229,18 @@ const styles = StyleSheet.create({
     color: colors.success,
     marginTop: spacing.sm - 2,
   },
-  logoutButton: {
+  helpButton: {
     alignItems: 'center',
     marginTop: spacing.xxl,
+    paddingVertical: spacing.md,
+  },
+  helpButtonText: {
+    ...typography.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  logoutButton: {
+    alignItems: 'center',
     paddingVertical: spacing.md,
   },
   logoutButtonText: {
