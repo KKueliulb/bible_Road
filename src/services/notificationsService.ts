@@ -14,6 +14,13 @@ Notifications.setNotificationHandler({
 
 const DAILY_REMINDER_ID = 'daily-reading-reminder';
 
+// 실제 리마인더와 개발용 테스트 알림이 항상 같은 문구를 쓰도록 하나로 모아둔다.
+const REMINDER_CONTENT = {
+  title: 'Bible Road',
+  body: '아직 말씀을 읽지 않으셨네요? 지금 읽어볼까요? 🔥',
+  sound: 'default' as const,
+};
+
 async function ensureNotificationPermission(): Promise<boolean> {
   if (!Device.isDevice) return false;
 
@@ -69,11 +76,7 @@ export async function refreshDailyReminder(reminderTime: string, hasReadToday: b
 
   await Notifications.scheduleNotificationAsync({
     identifier: DAILY_REMINDER_ID,
-    content: {
-      title: 'Bible Road',
-      body: '아직 말씀을 읽지 않으셨네요? 지금 읽어볼까요? 🔥',
-      sound: 'default',
-    },
+    content: REMINDER_CONTENT,
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
       date: nextReminderDate(new Date(), reminderTime, hasReadToday),
@@ -82,7 +85,7 @@ export async function refreshDailyReminder(reminderTime: string, hasReadToday: b
 }
 
 /**
- * 개발용: 실제 알림이 뜨는지 바로 확인해보기 위해 N초 뒤 테스트 알림을 예약한다.
+ * 개발용: 실제 리마인더와 같은 문구로, N초 뒤에 뜨는지 바로 확인해보는 테스트 알림을 예약한다.
  * 권한이 없으면 예약하지 않고 false를 반환한다.
  */
 export async function sendTestNotificationIn(seconds: number): Promise<boolean> {
@@ -90,11 +93,7 @@ export async function sendTestNotificationIn(seconds: number): Promise<boolean> 
   if (!granted) return false;
 
   await Notifications.scheduleNotificationAsync({
-    content: {
-      title: '테스트 알림',
-      body: `${seconds}초 뒤에 뜨는 알림이 잘 보이면 정상 동작하는 거예요.`,
-      sound: 'default',
-    },
+    content: REMINDER_CONTENT,
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds,
