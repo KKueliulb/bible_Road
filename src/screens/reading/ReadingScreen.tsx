@@ -23,6 +23,7 @@ import ReadButton from '../../components/reading/ReadButton';
 import ExtraReadDropdownButton from '../../components/reading/ExtraReadDropdownButton';
 import MemberProgressList from '../../components/reading/MemberProgressList';
 import DevOverdueSimulatorButton from '../../components/dev/DevOverdueSimulatorButton';
+import DevNotificationTestButton from '../../components/dev/DevNotificationTestButton';
 import { colors, spacing, typography } from '../../constants/theme';
 
 type Props = NativeStackScreenProps<RoadmapStackParamList, 'Reading'>;
@@ -194,6 +195,7 @@ export default function ReadingScreen({ route }: Props) {
       <StreakWarningBanner graceDaysLeft={user.graceDaysLeft} overdueChapters={liveOverdueChapters} />
       <ChapterChecklist totalChapters={book.totalChapters} chaptersRead={progress?.chaptersRead ?? []} />
       <DevOverdueSimulatorButton />
+      <DevNotificationTestButton />
 
       {!isCompleted && (
         <ReadButton onPress={handleRead} isSubmitting={isSubmittingRead} alreadyDoneToday={readToday} />

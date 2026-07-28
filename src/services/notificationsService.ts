@@ -80,3 +80,25 @@ export async function refreshDailyReminder(reminderTime: string, hasReadToday: b
     },
   });
 }
+
+/**
+ * 개발용: 실제 알림이 뜨는지 바로 확인해보기 위해 N초 뒤 테스트 알림을 예약한다.
+ * 권한이 없으면 예약하지 않고 false를 반환한다.
+ */
+export async function sendTestNotificationIn(seconds: number): Promise<boolean> {
+  const granted = await ensureNotificationPermission();
+  if (!granted) return false;
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: '테스트 알림',
+      body: `${seconds}초 뒤에 뜨는 알림이 잘 보이면 정상 동작하는 거예요.`,
+      sound: 'default',
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds,
+    },
+  });
+  return true;
+}
