@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { getCheersReceivedToday, hasCheeredToday, ReceivedCheer, sendCheer } from '../../services/cheerLogsService';
@@ -16,40 +17,48 @@ export default function CheerInboxModal() {
   const [replyingUserId, setReplyingUserId] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
 
-  // 앱에 들어올 때 한 번, 오늘 받은 화이팅 중 아직 안 보여준 것이 있으면 팝업으로 띄운다.
-  // 이미 보여준 화이팅 id는 기기에 저장해 다음에 다시 앱을 열어도 반복해서 뜨지 않게 한다.
-  useEffect(() => {
-    if (!userId) return;
-    let isCancelled = false;
+  // 이 컴포넌트는 홈 로드맵 화면에서만 렌더링된다. 그 화면에 포커스가 올 때마다(다른 탭에서
+  // 돌아올 때, 읽기 화면에서 뒤로 나올 때 등) 오늘 받은 화이팅을 다시 확인해서, 아직 안
+  // 보여준 것이 있으면 그 자리에서 바로 팝업으로 띄운다. 이미 보여준 화이팅 id는 기기에
+  // 저장해 다음에 다시 확인해도 반복해서 뜨지 않게 한다.
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      let isCancelled = false;
 
-    async function load() {
-      try {
-        const received = await getCheersReceivedToday(userId!);
-        if (received.length === 0) return;
+      async function load() {
+        try {
+          const received = await getCheersReceivedToday(userId!);
+          const seenRaw = await AsyncStorage.getItem(seenKey(userId!));
+          const seenIds: string[] = seenRaw ? JSON.parse(seenRaw) : [];
+          const unseen = received.filter((cheer) => !seenIds.includes(cheer.id));
+          if (isCancelled) return;
 
-        const seenRaw = await AsyncStorage.getItem(seenKey(userId!));
-        const seenIds: string[] = seenRaw ? JSON.parse(seenRaw) : [];
-        const unseen = received.filter((cheer) => !seenIds.includes(cheer.id));
-        if (unseen.length === 0 || isCancelled) return;
+          if (unseen.length === 0) {
+            setCheers([]);
+            setIsVisible(false);
+            return;
+          }
 
-        const repliedResults = await Promise.all(
-          unseen.map(async (cheer) => [cheer.fromUserId, await hasCheeredToday(userId!, cheer.fromUserId)] as const)
-        );
-        if (isCancelled) return;
+          const repliedResults = await Promise.all(
+            unseen.map(async (cheer) => [cheer.fromUserId, await hasCheeredToday(userId!, cheer.fromUserId)] as const)
+          );
+          if (isCancelled) return;
 
-        setCheers(unseen);
-        setRepliedUserIds(new Set(repliedResults.filter(([, replied]) => replied).map(([id]) => id)));
-        setIsVisible(true);
-      } catch {
-        // 화이팅 알림 조회 실패는 부가 기능이라 조용히 무시
+          setCheers(unseen);
+          setRepliedUserIds(new Set(repliedResults.filter(([, replied]) => replied).map(([id]) => id)));
+          setIsVisible(true);
+        } catch {
+          // 화이팅 알림 조회 실패는 부가 기능이라 조용히 무시
+        }
       }
-    }
 
-    load();
-    return () => {
-      isCancelled = true;
-    };
-  }, [userId]);
+      load();
+      return () => {
+        isCancelled = true;
+      };
+    }, [userId])
+  );
 
   async function handleClose() {
     setIsVisible(false);

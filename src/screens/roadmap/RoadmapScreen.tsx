@@ -14,6 +14,7 @@ import TodayGoalFloatingBar from '../../components/roadmap/TodayGoalFloatingBar'
 import TestamentDropdown from '../../components/roadmap/TestamentDropdown';
 import RoadmapNode from '../../components/roadmap/RoadmapNode';
 import RoadmapConnector from '../../components/roadmap/RoadmapConnector';
+import CheerInboxModal from '../../components/reading/CheerInboxModal';
 import { colors, spacing, typography } from '../../constants/theme';
 
 type Props = NativeStackScreenProps<RoadmapStackParamList, 'RoadmapHome'>;
@@ -186,6 +187,8 @@ export default function RoadmapScreen({ navigation }: Props) {
             );
           })}
       </ScrollView>
+
+      <CheerInboxModal />
     </View>
   );
 }
