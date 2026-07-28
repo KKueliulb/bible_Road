@@ -170,10 +170,10 @@ export default function ReadingScreen({ route }: Props) {
   }
 
   async function handleCheer(toUserId: string) {
-    if (!userId) return;
+    if (!userId || !user) return;
     setCheeringUserId(toUserId);
     try {
-      await sendCheer(userId, toUserId);
+      await sendCheer(userId, user.nickname, toUserId);
       setCheeredUserIds((prev) => new Set(prev).add(toUserId));
     } catch {
       // 화이팅 전송 실패는 조용히 무시 (치명적이지 않음)
