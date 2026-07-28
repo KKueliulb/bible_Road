@@ -90,8 +90,3 @@ export function getPersonalizedSequence(startTestament: Testament): BookSeed[] {
   const ot = CANONICAL_SEQUENCE.filter((book) => book.testament === 'OT');
   return [...nt, ...ot];
 }
-
-/** 로드맵 노드에 표시할, 시작 성경 기준으로 재배열된 1~66 번호. */
-export function getDisplayOrder(book: BookSeed, startTestament: Testament): number {
-  return getPersonalizedSequence(startTestament).findIndex((b) => b.id === book.id) + 1;
-}

@@ -11,8 +11,6 @@ interface Props {
   book: Book;
   status: BookProgressStatus;
   index: number;
-  /** 온보딩에서 고른 시작 성경 기준 개인화된 1~66 순번 (getDisplayOrder) */
-  displayOrder: number;
   chaptersRead: number;
   participantCount: number;
   /** 진행중인 노드에 한해 이름까지 함께 보여준다(그 외 노드는 카운트만). */
@@ -21,12 +19,12 @@ interface Props {
 }
 
 export const NODE_SIZE = 88;
+const HALO_SIZE = NODE_SIZE * 1.4;
 
 export default function RoadmapNode({
   book,
   status,
   index,
-  displayOrder,
   chaptersRead,
   participantCount,
   participants,
@@ -35,13 +33,9 @@ export default function RoadmapNode({
   const alignRight = index % 2 === 1;
   const isCompleted = status === 'completed';
   const isInProgress = status === 'in_progress';
-  const gradientColors = isCompleted ? gradients.navy : isInProgress ? gradients.orange : null;
 
   const nodeContent = (
     <>
-      <View style={styles.orderBadge}>
-        <Text style={styles.orderBadgeText}>{displayOrder}</Text>
-      </View>
       <Text
         style={[styles.nodeName, status === 'not_started' ? styles.nodeTextMuted : styles.nodeTextOnColor]}
         numberOfLines={1}
@@ -52,31 +46,31 @@ export default function RoadmapNode({
       <Text style={[styles.nodeProgress, status === 'not_started' ? styles.nodeTextMuted : styles.nodeTextOnColor]}>
         {chaptersRead}/{book.totalChapters}
       </Text>
-
-      {isCompleted && (
-        <View style={styles.checkOverlay} pointerEvents="none">
-          <Ionicons name="checkmark-circle" size={NODE_SIZE * 0.7} color="rgba(255,255,255,0.55)" />
-        </View>
-      )}
+      {isCompleted && <Text style={[styles.nodeProgress, styles.nodeTextOnColor]}>완독</Text>}
     </>
   );
 
   return (
     <View style={[styles.row, alignRight && styles.rowReversed]}>
-      <Pressable onPress={onPress}>
-        {gradientColors ? (
-          <LinearGradient
-            colors={gradientColors}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.node, isInProgress && styles.nodeInProgressShadow]}
-          >
-            {nodeContent}
-          </LinearGradient>
-        ) : (
-          <View style={[styles.node, styles.nodeNotStarted]}>{nodeContent}</View>
-        )}
-      </Pressable>
+      <View style={styles.nodeContainer}>
+        {isInProgress && <View pointerEvents="none" style={styles.halo} />}
+        <Pressable onPress={onPress}>
+          {isInProgress ? (
+            <View style={[styles.node, styles.nodeInProgress]}>{nodeContent}</View>
+          ) : isCompleted ? (
+            <LinearGradient
+              colors={gradients.navy}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.node}
+            >
+              {nodeContent}
+            </LinearGradient>
+          ) : (
+            <View style={[styles.node, styles.nodeNotStarted]}>{nodeContent}</View>
+          )}
+        </Pressable>
+      </View>
 
       {isInProgress && participants ? (
         <View style={styles.participantCard}>
@@ -115,6 +109,20 @@ const styles = StyleSheet.create({
   rowReversed: {
     flexDirection: 'row-reverse',
   },
+  nodeContainer: {
+    width: NODE_SIZE,
+    height: NODE_SIZE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  halo: {
+    position: 'absolute',
+    width: HALO_SIZE,
+    height: HALO_SIZE,
+    borderRadius: HALO_SIZE / 2,
+    backgroundColor: colors.orange,
+    opacity: 0.25,
+  },
   node: {
     width: NODE_SIZE,
     height: NODE_SIZE,
@@ -126,12 +134,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     overflow: 'hidden',
   },
-  nodeInProgressShadow: {
-    shadowColor: colors.orange,
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+  nodeInProgress: {
+    backgroundColor: colors.orange,
   },
   nodeNotStarted: {
     backgroundColor: '#fff',
@@ -153,28 +157,6 @@ const styles = StyleSheet.create({
   },
   nodeTextMuted: {
     color: colors.textSecondary,
-  },
-  checkOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  orderBadge: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    minWidth: 16,
-    height: 16,
-    borderRadius: 8,
-    paddingHorizontal: 4,
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  orderBadgeText: {
-    fontFamily: fonts.bold,
-    fontSize: 9,
-    color: '#fff',
   },
   participantBadge: {
     flexDirection: 'row',

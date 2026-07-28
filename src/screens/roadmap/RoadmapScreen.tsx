@@ -8,7 +8,6 @@ import { Book, getBookById, getBooksByTestament } from '../../services/booksServ
 import { getBookProgressMap } from '../../services/bookProgressService';
 import { joinBookParticipants, Participant, subscribeToParticipants } from '../../services/participantsService';
 import { computeTodayGoalRange, hasReadToday } from '../../services/readingService';
-import { getDisplayOrder } from '../../data/books';
 import { BookProgressDoc, BookProgressStatus, Testament } from '../../types/models';
 import HomeTopBar from '../../components/roadmap/HomeTopBar';
 import TodayGoalFloatingBar from '../../components/roadmap/TodayGoalFloatingBar';
@@ -173,7 +172,6 @@ export default function RoadmapScreen({ navigation }: Props) {
                   book={book}
                   status={status}
                   index={index}
-                  displayOrder={getDisplayOrder(book, user?.roadmapStartTestament ?? 'OT')}
                   chaptersRead={progressMap[book.id]?.chaptersRead.length ?? 0}
                   participantCount={participantCounts[book.id] ?? 0}
                   participants={status === 'in_progress' ? participants : undefined}
