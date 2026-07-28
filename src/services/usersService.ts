@@ -10,6 +10,7 @@ export interface RankingEntry {
   userId: string;
   nickname: string;
   totalProgressPercent: number;
+  photoURL: string | null;
 }
 
 export async function isNicknameTaken(nickname: string): Promise<boolean> {
@@ -50,6 +51,7 @@ export async function createUser(name: string, nickname: string): Promise<{ id: 
     rereadCount: 0,
     roadmapStartTestament: 'OT',
     hasOnboarded: false,
+    photoURL: null,
     fcmToken: null,
     dailyReminderTime: '20:00',
     createdAt: Date.now(),
@@ -81,7 +83,12 @@ export function subscribeToRanking(onChange: (ranking: RankingEntry[]) => void):
     onChange(
       snapshot.docs.map((docSnap) => {
         const data = docSnap.data() as UserDoc;
-        return { userId: docSnap.id, nickname: data.nickname, totalProgressPercent: data.totalProgressPercent };
+        return {
+          userId: docSnap.id,
+          nickname: data.nickname,
+          totalProgressPercent: data.totalProgressPercent,
+          photoURL: data.photoURL ?? null,
+        };
       })
     );
   });

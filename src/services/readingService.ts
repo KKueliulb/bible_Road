@@ -49,6 +49,24 @@ export function computeLiveOverdueChapters(
   return Math.max(0, user.overdueChapters + ongoingGapChapters - repaid);
 }
 
+/**
+ * "오늘의 목표"로 표시할 장수 구간. 오늘 "읽었어요!"를 이미 눌렀으면(readToday) 방금 끝낸
+ * 구간을 그대로 유지하고(체크 표시는 호출부에서 별도 처리), 다음 날이 되어야 다음 구간으로 넘어간다.
+ * 그렇지 않으면 "읽었어요!"를 누르자마자 화면이 곧바로 다음 구간으로 넘어가버려서
+ * 마치 오늘 목표를 아직 안 채운 것처럼 보이는 문제가 있었다.
+ */
+export function computeTodayGoalRange(
+  chaptersReadCount: number,
+  totalChapters: number,
+  readToday: boolean
+): { start: number; end: number } {
+  const baseline = readToday ? Math.max(0, chaptersReadCount - DAILY_CHAPTER_GOAL) : chaptersReadCount;
+  return {
+    start: baseline + 1,
+    end: Math.min(baseline + DAILY_CHAPTER_GOAL, totalChapters),
+  };
+}
+
 interface RecordReadingParams {
   userId: string;
   user: UserDoc;

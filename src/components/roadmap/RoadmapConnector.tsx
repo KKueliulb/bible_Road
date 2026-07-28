@@ -6,7 +6,7 @@ import { NODE_SIZE } from './RoadmapNode';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const NODE_CENTER_OFFSET = spacing.lg + NODE_SIZE / 2;
-const CONNECTOR_HEIGHT = 32;
+const CONNECTOR_HEIGHT = 40;
 
 interface Props {
   /** 이 커넥터가 시작하는 쪽(이전 노드가 오른쪽 정렬이었는지) */
@@ -26,8 +26,8 @@ export default function RoadmapConnector({ startRight }: Props) {
         x2={x2}
         y2={CONNECTOR_HEIGHT}
         stroke={colors.border}
-        strokeWidth={3}
-        strokeDasharray="9,7"
+        strokeWidth={4}
+        strokeDasharray="10,8"
         strokeLinecap="round"
       />
     </Svg>

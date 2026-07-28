@@ -34,6 +34,8 @@ export interface UserDoc {
   roadmapStartTestament: Testament;
   /** 온보딩 완료 여부. 이 필드가 아예 없는(온보딩 도입 전에 가입한) 기존 유저는 온보딩을 건너뛴다. */
   hasOnboarded: boolean;
+  /** 프로필 사진 URL (Firebase Storage). 없으면 마이페이지/랭킹에서 닉네임 이니셜 아바타로 대체 표시. */
+  photoURL: string | null;
 }
 
 export interface BookProgressDoc {

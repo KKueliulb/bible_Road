@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { RankingEntry, subscribeToRanking } from '../../services/usersService';
+import Avatar from '../../components/common/Avatar';
 import { colors, fonts, radius, spacing, typography } from '../../constants/theme';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
@@ -28,6 +29,7 @@ export default function RankingScreen() {
         return (
           <View style={[styles.row, isMe && styles.rowMe]}>
             <Text style={[styles.rank, isMe && styles.textMe]}>{medal ?? index + 1}</Text>
+            <Avatar photoURL={item.photoURL} nickname={item.nickname} size={32} />
             <Text style={[styles.nickname, isMe && styles.textMe]} numberOfLines={1}>
               {item.nickname}
               {isMe ? ' (나)' : ''}
@@ -51,6 +53,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.sm,
     paddingVertical: spacing.md + 2,
     paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,

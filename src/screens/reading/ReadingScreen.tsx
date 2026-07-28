@@ -7,7 +7,12 @@ import { Book, getBookById } from '../../services/booksService';
 import { getBookProgressMap } from '../../services/bookProgressService';
 import { Participant, subscribeToParticipants } from '../../services/participantsService';
 import { hasCheeredToday, sendCheer } from '../../services/cheerLogsService';
-import { computeLiveOverdueChapters, hasReadToday, recordChaptersRead } from '../../services/readingService';
+import {
+  computeLiveOverdueChapters,
+  computeTodayGoalRange,
+  hasReadToday,
+  recordChaptersRead,
+} from '../../services/readingService';
 import { BookProgressDoc } from '../../types/models';
 import { DAILY_CHAPTER_GOAL } from '../../constants/readingConfig';
 import TodayGoalCard from '../../components/reading/TodayGoalCard';
@@ -101,11 +106,11 @@ export default function ReadingScreen({ route }: Props) {
   const progress = progressMap[book.id] ?? null;
   const chaptersReadCount = progress?.chaptersRead.length ?? 0;
   const isCompleted = progress?.status === 'completed';
-  const nextStart = chaptersReadCount + 1;
-  const nextEnd = Math.min(chaptersReadCount + DAILY_CHAPTER_GOAL, book.totalChapters);
   const remaining = book.totalChapters - chaptersReadCount;
   const readToday = hasReadToday(user.lastReadAt);
   const extraUsedToday = hasReadToday(user.lastExtraReadAt);
+  // 오늘 이미 "읽었어요!"를 눌렀으면 다음날이 되기 전까지는 방금 끝낸 구간을 그대로 보여준다.
+  const { start: nextStart, end: nextEnd } = computeTodayGoalRange(chaptersReadCount, book.totalChapters, readToday);
 
   function otherBooksTotal() {
     return Object.entries(progressMap)

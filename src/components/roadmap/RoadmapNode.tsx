@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Book } from '../../services/booksService';
 import { BookProgressStatus } from '../../types/models';
 import { colors, fonts, spacing, typography } from '../../constants/theme';
@@ -8,25 +9,26 @@ interface Props {
   book: Book;
   status: BookProgressStatus;
   index: number;
+  /** 온보딩에서 고른 시작 성경 기준 개인화된 1~66 순번 (getDisplayOrder) */
   displayOrder: number;
+  chaptersRead: number;
   participantCount: number;
   onPress: () => void;
 }
 
-const STATUS_LABEL: Record<BookProgressStatus, string> = {
-  completed: '완독',
-  in_progress: '진행중',
-  not_started: '미시작',
-};
+export const NODE_SIZE = 104;
 
-const STATUS_COLOR: Record<BookProgressStatus, string> = {
-  completed: colors.navy,
-  in_progress: colors.orange,
-  not_started: colors.textSecondary,
-};
-
-export default function RoadmapNode({ book, status, index, displayOrder, participantCount, onPress }: Props) {
+export default function RoadmapNode({
+  book,
+  status,
+  index,
+  displayOrder,
+  chaptersRead,
+  participantCount,
+  onPress,
+}: Props) {
   const alignRight = index % 2 === 1;
+  const isCompleted = status === 'completed';
 
   return (
     <View style={[styles.row, alignRight && styles.rowReversed]}>
@@ -39,40 +41,43 @@ export default function RoadmapNode({ book, status, index, displayOrder, partici
           status === 'not_started' && styles.nodeNotStarted,
         ]}
       >
+        <View style={styles.orderBadge}>
+          <Text style={styles.orderBadgeText}>{displayOrder}</Text>
+        </View>
         <Text
-          style={[
-            styles.nodeText,
-            status === 'not_started' ? styles.nodeTextMuted : styles.nodeTextOnColor,
-          ]}
+          style={[styles.nodeName, status === 'not_started' ? styles.nodeTextMuted : styles.nodeTextOnColor]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
         >
-          {displayOrder}
+          {book.name}
         </Text>
+        <Text
+          style={[styles.nodeProgress, status === 'not_started' ? styles.nodeTextMuted : styles.nodeTextOnColor]}
+        >
+          {chaptersRead}/{book.totalChapters}
+        </Text>
+
+        {isCompleted && (
+          <View style={styles.checkOverlay} pointerEvents="none">
+            <Ionicons name="checkmark-circle" size={NODE_SIZE * 0.7} color="rgba(255,255,255,0.55)" />
+          </View>
+        )}
       </Pressable>
-      <View style={styles.info}>
-        <Text style={styles.bookName}>{book.name}</Text>
-        <Text style={styles.statusLabel}>
-          <Text style={[styles.statusLabelBold, { color: STATUS_COLOR[status] }]}>
-            {STATUS_LABEL[status]}
-          </Text>
-          {' · 전체 '}
-          {book.totalChapters}
-          {'장 · 참여 '}
-          {participantCount}
-          {'명'}
-        </Text>
+
+      <View style={styles.participantBadge}>
+        <Ionicons name="people" size={14} color={colors.textSecondary} />
+        <Text style={styles.participantText}>{participantCount}명</Text>
       </View>
     </View>
   );
 }
-
-export const NODE_SIZE = 48;
 
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm + 2,
+    paddingVertical: spacing.xl,
     gap: spacing.md,
   },
   rowReversed: {
@@ -85,6 +90,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
+    paddingHorizontal: spacing.sm,
+    overflow: 'hidden',
   },
   nodeCompleted: {
     backgroundColor: colors.navy,
@@ -103,9 +110,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderColor: colors.border,
   },
-  nodeText: {
+  nodeName: {
     fontFamily: fonts.bold,
-    fontSize: 16,
+    fontSize: 15,
+    maxWidth: NODE_SIZE - spacing.md,
+  },
+  nodeProgress: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    marginTop: 2,
+    opacity: 0.9,
   },
   nodeTextOnColor: {
     color: '#fff',
@@ -113,19 +127,35 @@ const styles = StyleSheet.create({
   nodeTextMuted: {
     color: colors.textSecondary,
   },
-  info: {
-    flexShrink: 1,
+  checkOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  bookName: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
+  orderBadge: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  statusLabel: {
-    ...typography.small,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  statusLabelBold: {
+  orderBadgeText: {
     fontFamily: fonts.bold,
+    fontSize: 10,
+    color: '#fff',
+  },
+  participantBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  participantText: {
+    ...typography.caption,
+    color: colors.textSecondary,
   },
 });

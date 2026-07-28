@@ -18,7 +18,8 @@ npm start
 
 1. [Firebase 콘솔](https://console.firebase.google.com)에서 프로젝트를 생성합니다.
 2. Firestore Database를 생성합니다 (테스트 모드로 시작 가능).
-3. 프로젝트 설정 > 일반 탭에서 웹 앱을 추가하고 나오는 설정값을 `.env` 파일에 채워 넣습니다.
+3. **Storage**도 생성합니다(테스트 모드로 시작 가능) — 프로필 사진 업로드에 사용됩니다. 생성하지 않으면 마이페이지의 "프로필 사진 변경"이 실패합니다.
+4. 프로젝트 설정 > 일반 탭에서 웹 앱을 추가하고 나오는 설정값을 `.env` 파일에 채워 넣습니다.
 
 ```
 EXPO_PUBLIC_FIREBASE_API_KEY=...
@@ -79,12 +80,14 @@ src/
     mypage/                  # MyPageScreen (통계/닉네임 변경/초기화/로그아웃)
     onboarding/              # OnboardingScreen (구약/신약 시작 선택)
   components/
+    common/                  # Avatar (프로필 사진 또는 닉네임 이니셜 폴백)
     roadmap/                 # HomeTopBar, TodayGoalFloatingBar, TestamentDropdown, RoadmapNode, RoadmapConnector, ParticipantListInline
     reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList
   context/AuthContext.tsx    # 로그인 상태, 세션 복원, refreshUser
   services/
-    firebase.ts              # Firebase 초기화
+    firebase.ts              # Firebase 초기화 (Firestore + Storage)
     usersService.ts          # users 컬렉션 CRUD, 랭킹 구독, 닉네임 변경, 온보딩 완료 처리
+    profilePhotoService.ts    # 프로필 사진을 Firebase Storage에 업로드
     booksService.ts           # books 컬렉션 조회 (구약/신약 필터, id로 단건 조회)
     bookProgressService.ts    # users/{userId}/bookProgress 조회/저장/전체삭제
     participantsService.ts    # bookParticipants/{bookId}/members 조회/등록/삭제
@@ -104,10 +107,12 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 
 - **상단바(고정)**: 왼쪽 🔥 연속 읽기 일수, 가운데 📖 회독수(`rereadCount`), 오른쪽 닉네임. 네이티브 헤더(`로드맵` 타이틀) 대신 `HomeTopBar` 컴포넌트로 직접 그립니다(`RoadmapStack`에서 `RoadmapHome`은 `headerShown: false`).
 - **"오늘의 목표" 플로팅 바(고정)**: 현재 진행중인 책 기준 오늘 읽을 장수 범위를 보여주고, 오늘 "읽었어요!"를 이미 눌렀으면 체크 배지로 바뀝니다. 로드맵 목록을 스크롤해도 상단바 바로 아래 계속 고정됩니다(스크롤 영역 바깥에 배치).
+  - **표시 구간은 24시간 동안 고정됩니다**(`computeTodayGoalRange`). "읽었어요!"를 누르는 순간 화면이 곧바로 다음 구간으로 넘어가 버려서 마치 오늘 목표를 아직 못 채운 것처럼 보이던 문제를 고쳤습니다 — 오늘 이미 읽었으면 다음 날이 되기 전까지는 방금 끝낸 구간 + 체크 표시를 그대로 보여줍니다. 읽기 화면의 "오늘의 목표" 카드도 동일하게 동작합니다.
 - 구약/신약 드롭다운으로 전환하면 해당 테스타먼트의 책들이 지그재그 노드로 표시되고, 노드 사이는 `react-native-svg`로 그린 대각선 점선(`RoadmapConnector`)으로 연결됩니다.
-- 노드 색상으로 완독/진행중/미시작 상태를 구분합니다. 진행 상태는 `users/{userId}/bookProgress` 문서(없으면 미시작, `currentBookId`와 같으면 진행중)로 판단합니다.
-- 진행중인 책 노드 바로 아래에는 함께 읽는 참여자 목록이 그 노드와 같은 쪽(왼쪽/오른쪽)에 붙는 컴팩트 카드로 **실시간(onSnapshot)** 표시됩니다.
-- 모든 노드에 참여인원 수 + 전체 장수가 항상 표시됩니다(진입 가능 여부와 무관).
+- **노드는 큼직하게(한 화면에 약 3권 정도만 보이도록) 키웠고, 원 안에 책 이름 + 읽은 장수/전체 장수를 직접 표시합니다.** 왼쪽 위 작은 배지에는 (온보딩에서 고른 시작 성경 기준) 개인화된 1~66 순번이 남아있습니다.
+- 노드 색상으로 완독/진행중/미시작 상태를 구분합니다(완독=네이비, 진행중=오렌지+그림자, 미시작=흰색). 진행 상태는 `users/{userId}/bookProgress` 문서(없으면 미시작, `currentBookId`와 같으면 진행중)로 판단합니다. **완독한 노드에는 반투명 체크마크가 겹쳐서 표시됩니다**(이름/장수는 그대로 비쳐 보임).
+- **참여인원 수는 노드 옆(정렬 방향 그대로, 노드 다음 자리)에 작은 배지로 표시되고, 모든 책이 각자 실시간(onSnapshot)으로 구독**됩니다 — 예전에는 화면에 포커스가 돌아올 때만 다시 불러왔는데, 이제는 다른 사람이 참여/이탈하면 바로 반영됩니다.
+- 진행중인 책 노드 바로 아래에는 함께 읽는 참여자 목록(닉네임)이 그 노드와 같은 쪽(왼쪽/오른쪽)에 붙는 컴팩트 카드로 **실시간(onSnapshot)** 표시됩니다.
 - **미시작(not_started) 상태인 책은 눌러도 들어갈 수 없습니다** — 안내 메시지만 뜨고 읽기 화면으로 이동하지 않습니다. 진행중/완독 상태인 책만 진입 가능합니다.
 - 진입 가능한 노드를 누르면 `bookParticipants/{bookId}/members/{userId}`에 자동으로 참여 등록되고, 읽기 화면으로 이동합니다.
 - 책을 완독하면 그 책이 `currentBookId`였을 경우 자동으로 다음 책(정경 순서상 다음)으로 `currentBookId`/`currentTestament`가 이동합니다. 이때 **완독한 책의 참여기록은 제거되고 새 책에만 등록**됩니다 — "함께 읽는 중" 목록/참여인원 수는 항상 "지금 그 책을 읽고 있는 사람"만 정확히 반영하며, 실시간 구독(onSnapshot) 덕분에 다른 사람 화면에도 즉시 반영됩니다.
@@ -138,10 +143,12 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 ## 랭킹 (6단계)
 
 - `users` 컬렉션을 `totalProgressPercent`(전체 진행률) 내림차순으로 **실시간(onSnapshot)** 구독해 순위를 매깁니다.
+- 각 행에 프로필 사진(`photoURL`, 없으면 닉네임 이니셜 아바타)이 표시됩니다.
 - 본인 행은 주황색으로 강조 표시됩니다.
 
 ## 마이페이지 (7단계)
 
+- **프로필 사진**: 아바타를 누르면 갤러리에서 사진을 골라(`expo-image-picker`) Firebase Storage(`profilePhotos/{userId}.jpg`)에 업로드하고 `users/{userId}.photoURL`에 저장합니다. 사진이 없으면 닉네임 첫 글자 아바타가 대신 표시됩니다(랭킹 화면도 동일).
 - **내 통계**: 전체 진행률, 연속 읽기(스트릭), 밀린 장수(읽기 화면과 동일하게 `computeLiveOverdueChapters`로 실시간 계산), 다시 읽기 횟수를 카드로 표시합니다.
 - **닉네임 변경**: 평생 `NICKNAME_CHANGE_LIMIT`(기본 3회)까지만 가능합니다. 다른 유저와 중복되면 변경할 수 없고, 횟수를 다 쓰면 입력창 자체가 비활성화됩니다.
 - **처음부터 다시 읽기(초기화)**: 확인 Alert를 거친 뒤 실행되는 되돌릴 수 없는 동작입니다.

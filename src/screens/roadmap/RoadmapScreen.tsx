@@ -6,15 +6,9 @@ import { RoadmapStackParamList } from '../../navigation/RoadmapStack';
 import { useAuth } from '../../context/AuthContext';
 import { Book, getBookById, getBooksByTestament } from '../../services/booksService';
 import { getBookProgressMap } from '../../services/bookProgressService';
-import {
-  getParticipants,
-  joinBookParticipants,
-  Participant,
-  subscribeToParticipants,
-} from '../../services/participantsService';
-import { hasReadToday } from '../../services/readingService';
+import { joinBookParticipants, Participant, subscribeToParticipants } from '../../services/participantsService';
+import { computeTodayGoalRange, hasReadToday } from '../../services/readingService';
 import { getDisplayOrder } from '../../data/books';
-import { DAILY_CHAPTER_GOAL } from '../../constants/readingConfig';
 import { BookProgressDoc, BookProgressStatus, Testament } from '../../types/models';
 import HomeTopBar from '../../components/roadmap/HomeTopBar';
 import TodayGoalFloatingBar from '../../components/roadmap/TodayGoalFloatingBar';
@@ -91,26 +85,21 @@ export default function RoadmapScreen({ navigation }: Props) {
   }, [testament]);
 
   // 노드에 참여인원 수를 표시하기 위해, 잠긴(미시작) 책 포함 모든 책의 참여자 수를 가져온다.
-  // 테스타먼트 전환 시뿐 아니라, 읽기 화면에서 돌아와 화면이 다시 포커스될 때도 갱신한다
-  // (그렇지 않으면 책을 완독해 다음 책으로 자동 참여해도 숫자가 갱신되지 않음).
-  useFocusEffect(
-    useCallback(() => {
-      if (books.length === 0) return;
-      let isCancelled = false;
+  // 각 책의 참여자 수를 실시간(onSnapshot)으로 구독한다. 다른 사람이 참여/이탈하면
+  // 포커스 전환 없이도 바로 반영된다. 테스타먼트를 바꾸면 이전 구독은 정리하고 새로 구독한다.
+  useEffect(() => {
+    if (books.length === 0) return;
 
-      Promise.all(books.map((book) => getParticipants(book.id).then((list) => [book.id, list.length] as const)))
-        .then((entries) => {
-          if (!isCancelled) setParticipantCounts(Object.fromEntries(entries));
-        })
-        .catch(() => {
-          // 참여인원 수 표시는 부가 정보라 실패해도 화면을 막지 않음
-        });
+    const unsubscribes = books.map((book) =>
+      subscribeToParticipants(book.id, (list) => {
+        setParticipantCounts((prev) => ({ ...prev, [book.id]: list.length }));
+      })
+    );
 
-      return () => {
-        isCancelled = true;
-      };
-    }, [books])
-  );
+    return () => {
+      unsubscribes.forEach((unsubscribe) => unsubscribe());
+    };
+  }, [books]);
 
   const inProgressBook = books.find((book) => getStatus(book) === 'in_progress') ?? null;
 
@@ -143,11 +132,13 @@ export default function RoadmapScreen({ navigation }: Props) {
   const currentBookProgress = currentBook ? progressMap[currentBook.id] : undefined;
   const currentChaptersReadCount = currentBookProgress?.chaptersRead.length ?? 0;
   const currentBookCompleted = currentBookProgress?.status === 'completed';
-  const todayNextStart = currentChaptersReadCount + 1;
-  const todayNextEnd = currentBook
-    ? Math.min(currentChaptersReadCount + DAILY_CHAPTER_GOAL, currentBook.totalChapters)
-    : 0;
   const readToday = hasReadToday(user?.lastReadAt ?? null);
+  // 오늘 이미 "읽었어요!"를 눌렀으면 다음날이 되기 전까지는 방금 끝낸 구간을 그대로 보여준다.
+  const { start: todayNextStart, end: todayNextEnd } = computeTodayGoalRange(
+    currentChaptersReadCount,
+    currentBook?.totalChapters ?? 0,
+    readToday
+  );
 
   return (
     <View style={styles.root}>
@@ -184,6 +175,7 @@ export default function RoadmapScreen({ navigation }: Props) {
                   status={status}
                   index={index}
                   displayOrder={getDisplayOrder(book, user?.roadmapStartTestament ?? 'OT')}
+                  chaptersRead={progressMap[book.id]?.chaptersRead.length ?? 0}
                   participantCount={participantCounts[book.id] ?? 0}
                   onPress={() => handleNodePress(book, status)}
                 />

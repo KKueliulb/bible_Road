@@ -9,10 +9,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
-import { changeNickname } from '../../services/usersService';
+import { changeNickname, updateUser } from '../../services/usersService';
+import { uploadProfilePhoto } from '../../services/profilePhotoService';
 import { computeLiveOverdueChapters, resetUserProgress } from '../../services/readingService';
 import { NICKNAME_CHANGE_LIMIT } from '../../constants/profileConfig';
+import Avatar from '../../components/common/Avatar';
 import { colors, radius, spacing, typography } from '../../constants/theme';
 
 export default function MyPageScreen() {
@@ -22,6 +25,8 @@ export default function MyPageScreen() {
   const [nicknameSuccess, setNicknameSuccess] = useState(false);
   const [isChangingNickname, setIsChangingNickname] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isChangingPhoto, setIsChangingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   if (!userId || !user) {
     return <ActivityIndicator color={colors.navy} style={styles.spinner} />;
@@ -29,6 +34,36 @@ export default function MyPageScreen() {
 
   const liveOverdueChapters = computeLiveOverdueChapters(user);
   const remainingNicknameChanges = Math.max(0, NICKNAME_CHANGE_LIMIT - user.nicknameChangeCount);
+
+  async function handleChangePhoto() {
+    if (!userId || isChangingPhoto) return;
+    setPhotoError(null);
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setPhotoError('사진 라이브러리 접근 권한이 필요해요.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (result.canceled) return;
+
+    setIsChangingPhoto(true);
+    try {
+      const photoURL = await uploadProfilePhoto(userId, result.assets[0].uri);
+      await updateUser(userId, { photoURL });
+      await refreshUser();
+    } catch {
+      setPhotoError('프로필 사진 업로드에 실패했어요.');
+    } finally {
+      setIsChangingPhoto(false);
+    }
+  }
 
   async function handleChangeNickname() {
     if (!userId || !user || isChangingNickname) return;
@@ -86,9 +121,17 @@ export default function MyPageScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.avatar}>
-        <Text style={styles.avatarText}>{user.nickname.slice(0, 1)}</Text>
-      </View>
+      <Pressable style={styles.avatarWrap} onPress={handleChangePhoto} disabled={isChangingPhoto}>
+        <Avatar photoURL={user.photoURL} nickname={user.nickname} size={80} />
+        <View style={styles.avatarEditBadge}>
+          {isChangingPhoto ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.avatarEditBadgeText}>변경</Text>
+          )}
+        </View>
+      </Pressable>
+      {photoError && <Text style={styles.error}>{photoError}</Text>}
       <Text style={styles.name}>{user.name}</Text>
       <Text style={styles.nickname}>@{user.nickname}</Text>
 
@@ -174,19 +217,28 @@ const styles = StyleSheet.create({
   spinner: {
     marginTop: spacing.xxl + spacing.sm,
   },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.navy,
+  avatarWrap: {
     alignSelf: 'center',
-    alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: spacing.md,
   },
-  avatarText: {
-    ...typography.h2,
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    minWidth: 36,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.orange,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.background,
+  },
+  avatarEditBadgeText: {
+    ...typography.smallBold,
     color: '#fff',
+    fontSize: 11,
   },
   name: {
     ...typography.h2,
