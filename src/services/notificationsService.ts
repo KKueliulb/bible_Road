@@ -14,7 +14,6 @@ Notifications.setNotificationHandler({
 
 const DAILY_REMINDER_ID = 'daily-reading-reminder';
 
-// 실제 리마인더와 개발용 테스트 알림이 항상 같은 문구를 쓰도록 하나로 모아둔다.
 const REMINDER_CONTENT = {
   title: 'Bible Road',
   body: '아직 말씀을 읽지 않으셨네요? 지금 읽어볼까요? 🔥',
@@ -82,22 +81,4 @@ export async function refreshDailyReminder(reminderTime: string, hasReadToday: b
       date: nextReminderDate(new Date(), reminderTime, hasReadToday),
     },
   });
-}
-
-/**
- * 개발용: 실제 리마인더와 같은 문구로, N초 뒤에 뜨는지 바로 확인해보는 테스트 알림을 예약한다.
- * 권한이 없으면 예약하지 않고 false를 반환한다.
- */
-export async function sendTestNotificationIn(seconds: number): Promise<boolean> {
-  const granted = await ensureNotificationPermission();
-  if (!granted) return false;
-
-  await Notifications.scheduleNotificationAsync({
-    content: REMINDER_CONTENT,
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds,
-    },
-  });
-  return true;
 }
