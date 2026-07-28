@@ -1,10 +1,11 @@
-import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, setDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, onSnapshot, query, setDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { Testament, UserDoc } from '../types/models';
 import { BOOKS, getPersonalizedSequence } from '../data/books';
 import { NICKNAME_CHANGE_LIMIT } from '../constants/profileConfig';
 
 const usersCollection = collection(db, 'users');
+const BOOKS_BY_ID = new Map(BOOKS.map((book) => [book.id, book]));
 
 export interface RankingEntry {
   userId: string;
@@ -12,6 +13,10 @@ export interface RankingEntry {
   name: string;
   totalProgressPercent: number;
   photoURL: string | null;
+  rereadCount: number;
+  currentBookName: string;
+  currentChapter: number;
+  currentBookTotalChapters: number;
 }
 
 export async function isNicknameTaken(nickname: string): Promise<boolean> {
@@ -78,21 +83,31 @@ export async function completeOnboarding(userId: string, startTestament: Testame
   });
 }
 
-/** 총 진행률(totalProgressPercent) 내림차순 랭킹을 실시간으로 구독한다. 반환값을 호출하면 구독이 해제된다. */
+/**
+ * 랭킹을 실시간으로 구독한다. 정렬 기준: 1) 회독수(rereadCount) 내림차순, 2) 같으면 총 진행률
+ * (totalProgressPercent) 내림차순. Firestore 복합 색인 없이 클라이언트에서 정렬한다.
+ * 반환값을 호출하면 구독이 해제된다.
+ */
 export function subscribeToRanking(onChange: (ranking: RankingEntry[]) => void): () => void {
-  return onSnapshot(query(usersCollection, orderBy('totalProgressPercent', 'desc')), (snapshot) => {
-    onChange(
-      snapshot.docs.map((docSnap) => {
-        const data = docSnap.data() as UserDoc;
-        return {
-          userId: docSnap.id,
-          nickname: data.nickname,
-          name: data.name,
-          totalProgressPercent: data.totalProgressPercent,
-          photoURL: data.photoURL ?? null,
-        };
-      })
-    );
+  return onSnapshot(usersCollection, (snapshot) => {
+    const entries = snapshot.docs.map((docSnap) => {
+      const data = docSnap.data() as UserDoc;
+      const currentBook = BOOKS_BY_ID.get(data.currentBookId);
+      return {
+        userId: docSnap.id,
+        nickname: data.nickname,
+        name: data.name,
+        totalProgressPercent: data.totalProgressPercent,
+        photoURL: data.photoURL ?? null,
+        rereadCount: data.rereadCount,
+        currentBookName: currentBook?.name ?? '',
+        currentChapter: data.currentChapter,
+        currentBookTotalChapters: currentBook?.totalChapters ?? 0,
+      };
+    });
+
+    entries.sort((a, b) => b.rereadCount - a.rereadCount || b.totalProgressPercent - a.totalProgressPercent);
+    onChange(entries);
   });
 }
 

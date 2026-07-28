@@ -23,6 +23,11 @@ export default function RankingListRow({ entry, rank, isMe, elevated }: Props) {
           {entry.nickname}
           <Text style={styles.nameSuffix}>{isMe ? ' (나)' : ` (${entry.name})`}</Text>
         </Text>
+        {entry.currentBookName !== '' && (
+          <Text style={styles.readingPosition} numberOfLines={1}>
+            {entry.currentBookName} {entry.currentChapter}/{entry.currentBookTotalChapters}
+          </Text>
+        )}
         <ProgressBar percent={entry.totalProgressPercent} color={isMe ? colors.orange : colors.navy} />
       </View>
       <Text style={[styles.percent, isMe && styles.textMe]}>{entry.totalProgressPercent.toFixed(1)}%</Text>
@@ -64,6 +69,10 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   nameSuffix: {
+    ...typography.small,
+    color: colors.textSecondary,
+  },
+  readingPosition: {
     ...typography.small,
     color: colors.textSecondary,
   },

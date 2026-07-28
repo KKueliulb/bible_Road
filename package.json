@@ -32,6 +32,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "seed:books": "tsx src/scripts/seedBooks.ts",
+    "seed:ranking": "tsx src/scripts/seedTestRanking.ts",
     "reset:users": "tsx src/scripts/resetUsers.ts"
   },
   "private": true

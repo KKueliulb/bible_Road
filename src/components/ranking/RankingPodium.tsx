@@ -34,6 +34,11 @@ export default function RankingPodium({ top3, myUserId }: Props) {
             <Text style={styles.nameSuffix} numberOfLines={1}>
               {isMe ? '(나)' : `(${entry.name})`}
             </Text>
+            {entry.currentBookName !== '' && (
+              <Text style={styles.readingPosition} numberOfLines={1}>
+                {entry.currentBookName} {entry.currentChapter}/{entry.currentBookTotalChapters}
+              </Text>
+            )}
             <Text style={[styles.percent, isMe && styles.textMe]}>{entry.totalProgressPercent.toFixed(1)}%</Text>
             <View
               style={[
@@ -77,6 +82,11 @@ const styles = StyleSheet.create({
   nameSuffix: {
     ...typography.small,
     color: colors.textSecondary,
+  },
+  readingPosition: {
+    ...typography.small,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   percent: {
     ...typography.captionBold,

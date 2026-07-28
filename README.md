@@ -94,8 +94,11 @@ src/
     participantsService.ts    # bookParticipants/{bookId}/members 조회/등록/삭제
     cheerLogsService.ts        # 화이팅 하루 1회 제한 체크 + 전송
     readingService.ts          # "읽었어요/N장 더 읽었어요" 핵심 로직 + 진행 초기화 (아래 참고)
-  data/books.ts               # 66권 정적 데이터 + 개인화된 진행 순서 계산(getPersonalizedSequence/getDisplayOrder)
-  scripts/seedBooks.ts         # books 컬렉션 시딩 스크립트 (firebase-admin)
+  data/books.ts               # 66권 정적 데이터 + 개인화된 진행 순서 계산(getPersonalizedSequence)
+  scripts/
+    seedBooks.ts               # books 컬렉션 시딩 스크립트 (firebase-admin)
+    seedTestRanking.ts          # 랭킹 화면 테스트용 더미 유저 55명 생성 스크립트 (firebase-admin)
+    resetUsers.ts               # 전체 유저 + 관련 데이터 삭제 스크립트 (firebase-admin)
   types/models.ts              # Firestore 데이터 모델 타입
   constants/
     theme.ts                   # 폰트/spacing/radius/색상/타이포그래피 디자인 토큰 (아래 "디자인 폴리싱" 참고)
@@ -143,11 +146,19 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 
 ## 랭킹 (6단계)
 
-- `users` 컬렉션을 `totalProgressPercent`(전체 진행률) 내림차순으로 **실시간(onSnapshot)** 구독해 순위를 매깁니다.
+- `users` 컬렉션 전체를 **실시간(onSnapshot)** 구독하고, 클라이언트에서 다음 기준으로 정렬합니다(Firestore 복합 색인이 필요 없도록 서버 정렬 대신 클라이언트 정렬을 씁니다).
+  1. **회독수(rereadCount)** 내림차순 — 회독을 많이 한 사람이 먼저.
+  2. 회독수가 같으면 **총 진행률(totalProgressPercent)** 내림차순.
 - **TOP 3는 단상(포디움) 형식**으로 상단에 표시됩니다(`RankingPodium`, 2등-1등-3등 순으로 배치해 가운데 1등이 가장 높게 보임).
-- 그 아래로 **1등부터 50등까지**를 리스트로 나열합니다(`RankingListRow`). 각 행에는 프로필 사진(`photoURL`, 없으면 닉네임 이니셜 아바타), 닉네임, 진척도 막대 그래프(`ProgressBar`) + 소수점 첫째 자리까지의 퍼센트가 표시됩니다.
+- 그 아래로 **1등부터 50등까지**를 리스트로 나열합니다(`RankingListRow`). 각 행에는 프로필 사진(`photoURL`, 없으면 닉네임 이니셜 아바타), 닉네임, **현재 읽고 있는 위치**(`{책이름} {읽은 장수}/{전체 장수}`, `user.currentBookId`/`currentChapter`를 `src/data/books.ts`의 정적 데이터로 변환), 진척도 막대 그래프(`ProgressBar`) + 소수점 첫째 자리까지의 퍼센트가 표시됩니다. 포디움에도 동일하게 현재 읽는 위치가 표시됩니다.
 - 본인을 제외한 모든 참가자의 닉네임 옆에는 본명이 `(본명)` 형식으로 함께 표시됩니다. 본인 행에는 대신 `(나)`가 표시되고 주황색으로 강조됩니다.
 - **하단 탭바 바로 위에 내 등수 고정 표시**: 리스트를 드래그해서 내 등수 행이 화면에 보이는 동안에는 사라지고, 화면 밖으로 스크롤돼 안 보이게 되면 다시 하단에 떠서 고정됩니다(`FlatList`의 `onViewableItemsChanged`로 내 행의 가시성을 추적).
+
+### 랭킹 화면 테스트용 더미 유저 55명 생성
+
+- `npm run seed:ranking` — `src/scripts/seedTestRanking.ts`가 닉네임 `테스트유저01`~`테스트유저55`로 더미 유저 55명을 만듭니다(다른 시딩 스크립트와 마찬가지로 `serviceAccountKey.json` 필요).
+- 회독수는 0~3회 중 가중치를 둔 무작위값, 총 진행률은 0~100% 무작위값이고 **그 진행률에 맞춰 현재 읽고 있는 책/장수도 앞뒤가 맞게 계산**해서 넣습니다(랭킹 리스트의 "현재 읽고 있는 위치" 표시를 실제처럼 테스트할 수 있도록). `bookProgress` 서브컬렉션까지는 만들지 않으므로 로드맵/읽기 화면 테스트에는 쓸 수 없고, 랭킹 화면 전용입니다.
+- 테스트가 끝나면 `npm run reset:users`로 지울 수 있습니다(단, 이 스크립트는 테스트 유저뿐 아니라 **전체 유저**를 삭제하니 실제 가입자가 있다면 주의하세요).
 
 ## 마이페이지 (7단계)
 
