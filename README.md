@@ -2,7 +2,7 @@
 
 교회 청년부 대상 성경 통독 습관 앱. Expo(React Native) + Firebase(Firestore/FCM) 기반.
 
-> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~9단계 + 10단계 일부 (프로젝트 셋업 / 정적 데이터 시딩 / 인증 / 홈 로드맵 / 읽기 화면 / 랭킹 / 마이페이지 / 온보딩 / 알림 / 디자인 폴리싱)**. 11단계(테스트/배포)는 아직입니다.
+> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~9단계 + 10단계 일부 (프로젝트 셋업 / 정적 데이터 시딩 / 인증 / 홈 로드맵 / 읽기 화면 / 랭킹 / 마이페이지 / 온보딩 / 알림 / 디자인 폴리싱)**. 11단계(테스트/배포)는 **OTA 업데이트(EAS Update) 설정까지** 진행했고, 실제 첫 빌드/스토어 배포는 아직입니다(아래 "배포 & 업데이트" 참고).
 
 ## 시작하기
 
@@ -81,7 +81,7 @@ src/
   components/
     common/                  # Avatar (남색 그라데이션 배경 + 닉네임 첫 글자)
     roadmap/                 # HomeTopBar, TodayGoalFloatingBar, TestamentDropdown, RoadmapNode(그라데이션+병합된 참여자 카드 포함), RoadmapConnector
-    reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList
+    reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList, CheerInboxModal(홈 화면 전용 화이팅 팝업)
     ranking/                 # RankingPodium(TOP 3 단상), RankingListRow, ProgressBar
     mypage/                  # HelpModal (연속 불꽃/유예/밀린 장수/회독/화이팅/알림 FAQ)
   context/AuthContext.tsx    # 로그인 상태, 세션 복원, refreshUser
@@ -91,9 +91,9 @@ src/
     booksService.ts           # books 컬렉션 조회 (구약/신약 필터, id로 단건 조회)
     bookProgressService.ts    # users/{userId}/bookProgress 조회/저장/전체삭제
     participantsService.ts    # bookParticipants/{bookId}/members 조회/등록/삭제
-    cheerLogsService.ts        # 화이팅 하루 1회 제한 체크 + 전송
+    cheerLogsService.ts        # 화이팅 전송/조회 (하루 1회 제한, 오늘 받은 화이팅 조회)
     readingService.ts          # "읽었어요/N장 더 읽었어요" 핵심 로직 + 66권 완독 시 자동 회독 처리 (아래 참고)
-    notificationsService.ts     # 알림 권한 요청 + Expo push token 발급 (registerForPushNotifications)
+    notificationsService.ts     # 알림 권한 요청 + 매일 리마인더 로컬 알림 예약 (refreshDailyReminder)
   data/books.ts               # 66권 정적 데이터 + 개인화된 진행 순서 계산(getPersonalizedSequence)
   scripts/
     seedBooks.ts               # books 컬렉션 시딩 스크립트 (firebase-admin)
@@ -107,7 +107,7 @@ src/
 assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OFL-1.1, LICENSE.txt 참고)
 ```
 
-> 원격 푸시(Cloud Functions 기반 화이팅 알림)를 시도했다가 서버 비용 없는 쪽으로 방향을 바꾸면서, SDK도 54로 되돌리고 그 시도에서만 필요했던 설정(`google-services.json` 참조 등)은 정리했습니다. `eas.json`과 `app.json`의 `android.package`는 나중에 EAS Build(스토어 배포 등)가 다시 필요해질 때를 대비해 남겨뒀고, `expo-notifications` 플러그인 설정(아이콘/색상)은 지금 쓰는 로컬 알림에도 그대로 적용됩니다.
+> 원격 푸시(Cloud Functions 기반 화이팅 알림)를 시도했다가 서버 비용 없는 쪽으로 방향을 바꾸면서, SDK도 54로 되돌리고 그 시도에서만 필요했던 설정(`google-services.json` 참조 등)은 정리했습니다. `eas.json`과 `app.json`의 `android.package`는 남겨뒀고, 이제 11단계(배포)에서 실제로 쓰입니다 — 아래 "배포 & 업데이트" 참고. `expo-notifications` 플러그인 설정(아이콘/색상)은 지금 쓰는 로컬 알림에도 그대로 적용됩니다.
 
 ## 홈 로드맵 (4단계)
 
@@ -243,6 +243,30 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 - 앱을 처음 열었을 때(로그인 직후) 보이는 첫 화면은 항상 **홈 로드맵**입니다(`MainTabs`의 `initialRouteName="RoadmapTab"`). 탭 순서 자체(랭킹-홈-마이페이지)와는 별개입니다.
 - 홈 로드맵의 상단바/오늘의 목표 플로팅 바/노드 연결 점선은 위 "홈 로드맵" 섹션을 참고하세요.
 
+## 배포 & 업데이트 (11단계 일부)
+
+배포 이후 "버전이 달라지면 업데이트할 수 있어야 한다"는 요구사항에 맞춰, **EAS Update(OTA)**를 세팅했습니다. 스토어 배포 후 대부분의 수정(화면 로직, 스타일, 텍스트 등 JS/에셋 변경)을 **스토어 재심사 없이** 즉시 배포할 수 있게 하기 위해서입니다. 서버 비용도 들지 않고(개인/소규모 무료 한도 안에서 충분), Expo Go 사용에도 영향이 없습니다(Expo Go는 이 설정을 쓰지 않고 자체 방식으로 동작합니다) — `npx expo start`로 하는 평소 테스트는 지금까지와 동일합니다.
+
+### 업데이트 방식은 두 갈래입니다
+
+- **JS/에셋만 바뀐 경우** (대부분의 기능 수정/버그 수정): `npm run update:preview` 또는 `npm run update:production`으로 **OTA 배포**합니다. 사용자가 다음에 앱을 열 때 자동으로 최신 번들을 받습니다.
+- **네이티브 변경이 있는 경우** (새 네이티브 모듈 추가, 아이콘/권한 등 `app.json`의 네이티브 설정 변경, Expo SDK 버전업 등): OTA로는 반영되지 않습니다. `app.json`의 `version`(및 필요하면 `android.versionCode`)을 올리고 `npm run build:android:preview`(내부 테스트) 또는 `eas build --platform android --profile production`(스토어 제출용)으로 **새 바이너리를 다시 빌드**해서 배포해야 합니다.
+
+### 지금까지 세팅한 것
+
+- `expo-updates` 패키지 설치, `app.json`에 `runtimeVersion.policy: "appVersion"`(네이티브 버전이 같은 빌드끼리만 OTA를 받도록 함) 추가.
+- `eas.json`의 `preview`/`production` 빌드 프로필에 각각 `channel`(`preview`/`production`)을 지정해, 어떤 빌드가 어떤 업데이트 채널을 구독하는지 연결.
+- `package.json`에 `update:preview`/`update:production` 스크립트 추가.
+
+### 남은 수동 작업 (Expo 계정 필요)
+
+`app.json`의 `updates.url`과 `extra.eas.projectId`는 아직 `REPLACE_WITH_EAS_PROJECT_ID` 플레이스홀더입니다 — 이건 EAS 프로젝트를 실제로 생성해야 나오는 값이라, Expo 계정으로 로그인해야 하는 아래 과정은 직접 진행해야 합니다.
+
+1. `npx eas login` (Expo 계정 로그인, 없으면 무료 가입)
+2. `npx eas init` — 프로젝트 루트에서 실행하면 EAS 프로젝트를 생성하고 `app.json`의 `extra.eas.projectId`와 `updates.url`을 자동으로 채워줍니다(현재 플레이스홀더를 덮어씁니다).
+3. 이후 최초 빌드: `npm run build:android:preview`(내부 테스트 APK) 또는 `eas build --platform android --profile production`(스토어 제출용 앱 번들).
+4. 이후 JS만 고칠 때마다: `npm run update:preview` 또는 `npm run update:production`.
+
 ## 다음 단계
 
-11단계(테스트/배포)부터 이어서 진행 예정입니다. 자세한 로드맵은 설계 문서를 참고하세요.
+11단계(테스트/배포)부터 이어서 진행 예정입니다. 남은 것: 실제 EAS 프로젝트 생성(`eas init`)과 첫 빌드/스토어 제출은 Expo 계정이 필요해 사용자가 직접 진행해야 합니다. 자세한 로드맵은 설계 문서를 참고하세요.

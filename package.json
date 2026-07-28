@@ -14,6 +14,7 @@
     "expo-linear-gradient": "~15.0.8",
     "expo-notifications": "~0.32.17",
     "expo-status-bar": "~3.0.9",
+    "expo-updates": "~29.0.19",
     "firebase": "^12.16.0",
     "react": "19.1.0",
     "react-native": "0.81.5",
@@ -35,7 +36,9 @@
     "seed:books": "tsx src/scripts/seedBooks.ts",
     "seed:ranking": "tsx src/scripts/seedTestRanking.ts",
     "reset:users": "tsx src/scripts/resetUsers.ts",
-    "build:android:preview": "eas build --platform android --profile preview"
+    "build:android:preview": "eas build --platform android --profile preview",
+    "update:preview": "eas update --branch preview",
+    "update:production": "eas update --branch production"
   },
   "private": true
 }
