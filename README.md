@@ -1,4 +1,4 @@
-# 성경 통독 앱 (bible_Road)
+# Bible Road
 
 교회 청년부 대상 성경 통독 습관 앱. Expo(React Native) + Firebase(Firestore/FCM) 기반.
 
