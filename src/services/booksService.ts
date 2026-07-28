@@ -20,3 +20,8 @@ export async function getBooksByTestament(testament: Testament): Promise<Book[]>
   const books = await getAllBooks();
   return books.filter((book) => book.testament === testament);
 }
+
+export async function getBookById(bookId: string): Promise<Book | undefined> {
+  const books = await getAllBooks();
+  return books.find((book) => book.id === bookId);
+}

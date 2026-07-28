@@ -47,3 +47,7 @@ export async function createUser(name: string, nickname: string): Promise<{ id: 
   await setDoc(newDocRef, data);
   return { id: newDocRef.id, data };
 }
+
+export async function updateUser(userId: string, updates: Partial<UserDoc>): Promise<void> {
+  await setDoc(doc(usersCollection, userId), updates, { merge: true });
+}
