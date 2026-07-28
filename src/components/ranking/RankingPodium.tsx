@@ -31,9 +31,11 @@ export default function RankingPodium({ top3, myUserId }: Props) {
             <Text style={[styles.nickname, isMe && styles.textMe]} numberOfLines={1}>
               {entry.nickname}
             </Text>
-            <Text style={styles.nameSuffix} numberOfLines={1}>
-              {isMe ? '(나)' : `(${entry.name})`}
-            </Text>
+            {isMe && (
+              <Text style={styles.nameSuffix} numberOfLines={1}>
+                (나)
+              </Text>
+            )}
             {entry.currentBookName !== '' && (
               <Text style={styles.readingPosition} numberOfLines={1}>
                 {entry.currentBookName} {entry.currentChapter}/{entry.currentBookTotalChapters}

@@ -10,7 +10,6 @@ const BOOKS_BY_ID = new Map(BOOKS.map((book) => [book.id, book]));
 export interface RankingEntry {
   userId: string;
   nickname: string;
-  name: string;
   totalProgressPercent: number;
   rereadCount: number;
   currentBookName: string;
@@ -95,7 +94,6 @@ export function subscribeToRanking(onChange: (ranking: RankingEntry[]) => void):
       return {
         userId: docSnap.id,
         nickname: data.nickname,
-        name: data.name,
         totalProgressPercent: data.totalProgressPercent,
         rereadCount: data.rereadCount,
         currentBookName: currentBook?.name ?? '',

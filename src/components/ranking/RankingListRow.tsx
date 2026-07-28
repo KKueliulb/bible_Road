@@ -21,7 +21,7 @@ export default function RankingListRow({ entry, rank, isMe, elevated }: Props) {
       <View style={styles.nameColumn}>
         <Text style={[styles.nickname, isMe && styles.textMe]} numberOfLines={1}>
           {entry.nickname}
-          <Text style={styles.nameSuffix}>{isMe ? ' (나)' : ` (${entry.name})`}</Text>
+          {isMe && <Text style={styles.nameSuffix}> (나)</Text>}
         </Text>
         {entry.currentBookName !== '' && (
           <Text style={styles.readingPosition} numberOfLines={1}>
