@@ -32,7 +32,9 @@ export default function SignupScreen({ navigation }: Props) {
     setIsSubmitting(false);
     if (!result.ok) {
       setError(result.error);
+      return;
     }
+    navigation.navigate('Login', { prefillNickname: nickname.trim() });
   }
 
   return (

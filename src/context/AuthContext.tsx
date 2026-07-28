@@ -55,10 +55,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { ok: false, error: '이미 사용 중인 닉네임입니다.' };
     }
 
-    const { id, data } = await createUser(trimmedName, trimmedNickname);
-    await AsyncStorage.setItem(SESSION_KEY, id);
-    setUserId(id);
-    setUser(data);
+    // 회원가입 후에는 자동 로그인하지 않고, 로그인 화면에서 닉네임으로 다시 로그인하게 한다.
+    await createUser(trimmedName, trimmedNickname);
     return { ok: true };
   }
 

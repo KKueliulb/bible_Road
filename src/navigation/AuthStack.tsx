@@ -4,7 +4,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
 
 export type AuthStackParamList = {
-  Login: undefined;
+  Login: { prefillNickname?: string } | undefined;
   Signup: undefined;
 };
 

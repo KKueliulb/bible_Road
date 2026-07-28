@@ -25,6 +25,12 @@ export default function DevQuickLoginButton() {
         const signupResult = await signup(TEST_NICKNAME, TEST_NICKNAME);
         if (!signupResult.ok) {
           setError(signupResult.error);
+          return;
+        }
+        // 회원가입은 더 이상 자동 로그인하지 않으므로, 만든 계정으로 다시 로그인한다.
+        const retryLoginResult = await login(TEST_NICKNAME);
+        if (!retryLoginResult.ok) {
+          setError(retryLoginResult.error);
         }
       }
     } catch {

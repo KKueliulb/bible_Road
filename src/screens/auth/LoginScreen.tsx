@@ -16,11 +16,12 @@ import { AuthStackParamList } from '../../navigation/AuthStack';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
-export default function LoginScreen({ navigation }: Props) {
+export default function LoginScreen({ navigation, route }: Props) {
   const { login } = useAuth();
-  const [nickname, setNickname] = useState('');
+  const [nickname, setNickname] = useState(route.params?.prefillNickname ?? '');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const justSignedUp = Boolean(route.params?.prefillNickname);
 
   async function handleSubmit() {
     if (isSubmitting) return;
@@ -39,7 +40,9 @@ export default function LoginScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Text style={styles.title}>성경 통독</Text>
-      <Text style={styles.subtitle}>닉네임으로 로그인해주세요</Text>
+      <Text style={styles.subtitle}>
+        {justSignedUp ? '회원가입이 완료됐어요! 닉네임으로 로그인해주세요' : '닉네임으로 로그인해주세요'}
+      </Text>
 
       <View style={styles.field}>
         <Text style={styles.label}>닉네임</Text>
