@@ -5,7 +5,7 @@ import { RoadmapStackParamList } from '../../navigation/RoadmapStack';
 import { useAuth } from '../../context/AuthContext';
 import { Book, getBookById } from '../../services/booksService';
 import { getBookProgressMap } from '../../services/bookProgressService';
-import { getParticipants, Participant } from '../../services/participantsService';
+import { Participant, subscribeToParticipants } from '../../services/participantsService';
 import { hasCheeredToday, sendCheer } from '../../services/cheerLogsService';
 import { hasReadToday, recordChaptersRead } from '../../services/readingService';
 import { BookProgressDoc } from '../../types/models';
@@ -16,6 +16,7 @@ import ChapterChecklist from '../../components/reading/ChapterChecklist';
 import ReadButton from '../../components/reading/ReadButton';
 import ExtraReadDropdownButton from '../../components/reading/ExtraReadDropdownButton';
 import MemberProgressList from '../../components/reading/MemberProgressList';
+import DevOverdueSimulatorButton from '../../components/dev/DevOverdueSimulatorButton';
 import { colors } from '../../constants/theme';
 
 type Props = NativeStackScreenProps<RoadmapStackParamList, 'Reading'>;
@@ -41,26 +42,14 @@ export default function ReadingScreen({ route }: Props) {
       setIsLoading(true);
       setError(null);
       try {
-        const [bookResult, progressMapResult, participantsResult] = await Promise.all([
+        const [bookResult, progressMapResult] = await Promise.all([
           getBookById(bookId),
           userId ? getBookProgressMap(userId) : Promise.resolve({}),
-          getParticipants(bookId),
         ]);
         if (isCancelled) return;
 
         setBook(bookResult ?? null);
         setProgressMap(progressMapResult);
-        setParticipants(participantsResult);
-
-        if (userId) {
-          const others = participantsResult.filter((p) => p.userId !== userId);
-          const cheeredChecks = await Promise.all(
-            others.map(async (p) => [p.userId, await hasCheeredToday(userId, p.userId)] as const)
-          );
-          if (!isCancelled) {
-            setCheeredUserIds(new Set(cheeredChecks.filter(([, cheered]) => cheered).map(([id]) => id)));
-          }
-        }
       } catch {
         if (!isCancelled) setError('데이터를 불러오지 못했어요. Firebase 설정을 확인해주세요.');
       } finally {
@@ -73,6 +62,33 @@ export default function ReadingScreen({ route }: Props) {
       isCancelled = true;
     };
   }, [bookId, userId]);
+
+  // 참여자 목록은 실시간으로 구독한다.
+  useEffect(() => {
+    const unsubscribe = subscribeToParticipants(bookId, setParticipants);
+    return unsubscribe;
+  }, [bookId]);
+
+  // 참여자 목록이 바뀔 때마다(새로 들어옴 등) 화이팅 전송 여부를 다시 확인한다.
+  useEffect(() => {
+    if (!userId) return;
+    let isCancelled = false;
+
+    const others = participants.filter((p) => p.userId !== userId);
+    Promise.all(others.map(async (p) => [p.userId, await hasCheeredToday(userId, p.userId)] as const))
+      .then((results) => {
+        if (!isCancelled) {
+          setCheeredUserIds(new Set(results.filter(([, cheered]) => cheered).map(([id]) => id)));
+        }
+      })
+      .catch(() => {
+        // 화이팅 전송 여부 확인 실패는 부가 정보라 무시
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [participants, userId]);
 
   if (isLoading) {
     return <ActivityIndicator color={colors.navy} style={styles.spinner} />;
@@ -89,6 +105,7 @@ export default function ReadingScreen({ route }: Props) {
   const nextEnd = Math.min(chaptersReadCount + DAILY_CHAPTER_GOAL, book.totalChapters);
   const remaining = book.totalChapters - chaptersReadCount;
   const readToday = hasReadToday(user.lastReadAt);
+  const extraAvailable = Math.min(user.overdueChapters, remaining);
 
   function otherBooksTotal() {
     return Object.entries(progressMap)
@@ -162,11 +179,12 @@ export default function ReadingScreen({ route }: Props) {
       />
       <StreakWarningBanner graceDaysLeft={user.graceDaysLeft} overdueChapters={user.overdueChapters} />
       <ChapterChecklist totalChapters={book.totalChapters} chaptersRead={progress?.chaptersRead ?? []} />
+      <DevOverdueSimulatorButton />
 
       {!isCompleted && !readToday && <ReadButton onPress={handleRead} isSubmitting={isSubmittingRead} />}
-      {!isCompleted && readToday && (
+      {!isCompleted && extraAvailable > 0 && (
         <ExtraReadDropdownButton
-          maxAvailable={remaining}
+          maxAvailable={extraAvailable}
           isSubmitting={isSubmittingExtra}
           onSubmit={handleExtra}
         />

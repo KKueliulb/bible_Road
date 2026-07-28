@@ -1,11 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RoadmapStackParamList } from '../../navigation/RoadmapStack';
 import { useAuth } from '../../context/AuthContext';
 import { Book, getBooksByTestament } from '../../services/booksService';
 import { getBookProgressMap } from '../../services/bookProgressService';
-import { getParticipants, joinBookParticipants, Participant } from '../../services/participantsService';
+import {
+  getParticipants,
+  joinBookParticipants,
+  Participant,
+  subscribeToParticipants,
+} from '../../services/participantsService';
 import { BookProgressDoc, BookProgressStatus, Testament } from '../../types/models';
 import TestamentDropdown from '../../components/roadmap/TestamentDropdown';
 import RoadmapNode from '../../components/roadmap/RoadmapNode';
@@ -20,6 +25,7 @@ export default function RoadmapScreen({ navigation }: Props) {
   const [books, setBooks] = useState<Book[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, BookProgressDoc>>({});
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participantCounts, setParticipantCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,19 +66,43 @@ export default function RoadmapScreen({ navigation }: Props) {
     };
   }, [testament]);
 
+  // 노드에 참여인원 수를 표시하기 위해, 잠긴(미시작) 책 포함 모든 책의 참여자 수를 가져온다.
+  // (테스타먼트 전환 시 한 번씩 갱신 — 실시간까지는 필요 없다고 판단)
+  useEffect(() => {
+    if (books.length === 0) return;
+    let isCancelled = false;
+
+    Promise.all(books.map((book) => getParticipants(book.id).then((list) => [book.id, list.length] as const)))
+      .then((entries) => {
+        if (!isCancelled) setParticipantCounts(Object.fromEntries(entries));
+      })
+      .catch(() => {
+        // 참여인원 수 표시는 부가 정보라 실패해도 화면을 막지 않음
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [books]);
+
   const inProgressBook = books.find((book) => getStatus(book) === 'in_progress') ?? null;
 
+  // 진행중인 책의 참여자 목록만 이름까지 실시간으로 보여준다.
   useEffect(() => {
     if (!inProgressBook) {
       setParticipants([]);
       return;
     }
-    getParticipants(inProgressBook.id)
-      .then(setParticipants)
-      .catch(() => setParticipants([]));
+    const unsubscribe = subscribeToParticipants(inProgressBook.id, setParticipants);
+    return unsubscribe;
   }, [inProgressBook]);
 
-  async function handleNodePress(book: Book) {
+  async function handleNodePress(book: Book, status: BookProgressStatus) {
+    if (status === 'not_started') {
+      Alert.alert('아직 시작할 수 없어요', '이전 책을 먼저 진행해주세요.');
+      return;
+    }
+
     if (userId && user) {
       try {
         await joinBookParticipants(book.id, userId, user.nickname);
@@ -100,7 +130,8 @@ export default function RoadmapScreen({ navigation }: Props) {
                 book={book}
                 status={status}
                 index={index}
-                onPress={() => handleNodePress(book)}
+                participantCount={participantCounts[book.id] ?? 0}
+                onPress={() => handleNodePress(book, status)}
               />
               {status === 'in_progress' && <ParticipantListInline participants={participants} />}
             </View>

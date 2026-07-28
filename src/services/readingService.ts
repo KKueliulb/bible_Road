@@ -1,7 +1,7 @@
 import { Book } from './booksService';
 import { saveBookProgress } from './bookProgressService';
 import { updateUser } from './usersService';
-import { TOTAL_BIBLE_CHAPTERS } from '../data/books';
+import { BOOKS, TOTAL_BIBLE_CHAPTERS } from '../data/books';
 import { DAILY_CHAPTER_GOAL } from '../constants/readingConfig';
 import { BookProgressDoc, UserDoc } from '../types/models';
 
@@ -38,7 +38,9 @@ interface RecordReadingResult {
  * "읽었어요!" / "N장 더 읽었어요!" 공용 로직.
  * 설계문서에 스트릭/유예/밀린 장수의 정확한 계산식이 없어 아래 규칙으로 구현함(추후 9단계 Cloud Functions에서 보완 가능):
  * - streakDays/lastReadAt/graceDaysLeft는 책 단위가 아니라 유저 전역 기준(오늘 아무 책이나 하나만 읽어도 인정)
- * - overdueChapters = max(0, 가입일 기준 경과일수 * DAILY_CHAPTER_GOAL - 전체 읽은 장수)
+ * - overdueChapters = max(0, 가입일 이후 "완전히 지난 날" 수 * DAILY_CHAPTER_GOAL - 전체 읽은 장수)
+ *   (가입 당일은 아직 하루가 안 지났으므로 항상 0 — 오늘 목표를 아직 안 채웠다고 밀린 걸로 치지 않음)
+ * - 책을 완독하면 그 책이 currentBookId였을 때만 다음 책으로 자동 이동(그렇지 않으면 로드맵에서 다음 책이 영원히 잠겨 있게 됨)
  */
 export async function recordChaptersRead(params: RecordReadingParams): Promise<RecordReadingResult> {
   const { userId, user, book, existingProgress, chapterCount, otherBooksChaptersReadTotal } = params;
@@ -98,12 +100,24 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
   const totalChaptersRead = otherBooksChaptersReadTotal + newChaptersRead.length;
   userUpdates.totalProgressPercent = Math.round((totalChaptersRead / TOTAL_BIBLE_CHAPTERS) * 1000) / 10;
 
-  const daysSinceCreated = diffCalendarDays(user.createdAt, now) + 1;
-  const expectedByNow = daysSinceCreated * DAILY_CHAPTER_GOAL;
-  userUpdates.overdueChapters = Math.max(0, expectedByNow - totalChaptersRead);
+  const daysFullyElapsed = diffCalendarDays(user.createdAt, now);
+  const expectedByYesterday = daysFullyElapsed * DAILY_CHAPTER_GOAL;
+  userUpdates.overdueChapters = Math.max(0, expectedByYesterday - totalChaptersRead);
 
   if (user.currentBookId === book.id) {
-    userUpdates.currentChapter = newChaptersRead.length;
+    if (status === 'completed') {
+      const sortedBooks = [...BOOKS].sort((a, b) => a.order - b.order);
+      const currentIndex = sortedBooks.findIndex((b) => b.id === book.id);
+      const nextBook = sortedBooks[currentIndex + 1];
+      if (nextBook) {
+        userUpdates.currentBookId = nextBook.id;
+        userUpdates.currentTestament = nextBook.testament;
+        userUpdates.currentChapter = 0;
+      }
+      // 66권 전체 완독(다음 책 없음)은 9단계(onFullBibleCompleted) 범위라 여기서는 그대로 둔다.
+    } else {
+      userUpdates.currentChapter = newChaptersRead.length;
+    }
   }
 
   await updateUser(userId, userUpdates);

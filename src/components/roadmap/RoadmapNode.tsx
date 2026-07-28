@@ -8,6 +8,7 @@ interface Props {
   book: Book;
   status: BookProgressStatus;
   index: number;
+  participantCount: number;
   onPress: () => void;
 }
 
@@ -17,7 +18,7 @@ const STATUS_LABEL: Record<BookProgressStatus, string> = {
   not_started: '미시작',
 };
 
-export default function RoadmapNode({ book, status, index, onPress }: Props) {
+export default function RoadmapNode({ book, status, index, participantCount, onPress }: Props) {
   const alignRight = index % 2 === 1;
 
   return (
@@ -43,7 +44,7 @@ export default function RoadmapNode({ book, status, index, onPress }: Props) {
       <View style={styles.info}>
         <Text style={styles.bookName}>{book.name}</Text>
         <Text style={styles.statusLabel}>
-          {STATUS_LABEL[status]} · 전체 {book.totalChapters}장
+          {STATUS_LABEL[status]} · 전체 {book.totalChapters}장 · 참여 {participantCount}명
         </Text>
       </View>
     </View>
