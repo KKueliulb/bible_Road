@@ -27,7 +27,7 @@ export default function RankingPodium({ top3, myUserId }: Props) {
         return (
           <View key={entry.userId} style={styles.column}>
             <Text style={styles.medal}>{MEDAL[i]}</Text>
-            <Avatar photoURL={entry.photoURL} nickname={entry.nickname} size={AVATAR_SIZE[i]} />
+            <Avatar createdAt={entry.createdAt} size={AVATAR_SIZE[i]} />
             <Text style={[styles.nickname, isMe && styles.textMe]} numberOfLines={1}>
               {entry.nickname}
             </Text>

@@ -102,10 +102,10 @@ async function seedTestRanking() {
       rereadCount: randomRereadCount(),
       roadmapStartTestament: 'OT',
       hasOnboarded: true,
-      photoURL: null,
       fcmToken: null,
       dailyReminderTime: '20:00',
-      createdAt: Date.now(),
+      // 가입 시각을 넓게 흩어놓아야 아바타 배경색(createdAt 기반 16진수)이 사람마다 다르게 나온다.
+      createdAt: Date.now() - randomInt(0, 730 * 86400000),
     };
 
     batch.set(db.collection('users').doc(), data);

@@ -18,8 +18,7 @@ npm start
 
 1. [Firebase 콘솔](https://console.firebase.google.com)에서 프로젝트를 생성합니다.
 2. Firestore Database를 생성합니다 (테스트 모드로 시작 가능).
-3. **Storage**도 생성합니다(테스트 모드로 시작 가능) — 프로필 사진 업로드에 사용됩니다. 생성하지 않으면 마이페이지의 "프로필 사진 변경"이 실패합니다.
-4. 프로젝트 설정 > 일반 탭에서 웹 앱을 추가하고 나오는 설정값을 `.env` 파일에 채워 넣습니다.
+3. 프로젝트 설정 > 일반 탭에서 웹 앱을 추가하고 나오는 설정값을 `.env` 파일에 채워 넣습니다.
 
 ```
 EXPO_PUBLIC_FIREBASE_API_KEY=...
@@ -77,18 +76,17 @@ src/
     roadmap/                 # RoadmapScreen (홈 로드맵)
     reading/                 # ReadingScreen (체크리스트, 읽었어요 등)
     ranking/                 # RankingScreen (전체 진행률 랭킹)
-    mypage/                  # MyPageScreen (통계/닉네임 변경/초기화/로그아웃)
+    mypage/                  # MyPageScreen (통계/닉네임 변경/로그아웃)
     onboarding/              # OnboardingScreen (구약/신약 시작 선택)
   components/
-    common/                  # Avatar (프로필 사진 또는 닉네임 이니셜 폴백)
+    common/                  # Avatar (가입 시각 기반 배경색 + 십자가 아이콘)
     roadmap/                 # HomeTopBar, TodayGoalFloatingBar, TestamentDropdown, RoadmapNode(그라데이션+병합된 참여자 카드 포함), RoadmapConnector
     reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList
     ranking/                 # RankingPodium(TOP 3 단상), RankingListRow, ProgressBar
   context/AuthContext.tsx    # 로그인 상태, 세션 복원, refreshUser
   services/
-    firebase.ts              # Firebase 초기화 (Firestore + Storage)
+    firebase.ts              # Firebase 초기화 (Firestore)
     usersService.ts          # users 컬렉션 CRUD, 랭킹 구독, 닉네임 변경, 온보딩 완료 처리
-    profilePhotoService.ts    # 프로필 사진을 Firebase Storage에 업로드
     booksService.ts           # books 컬렉션 조회 (구약/신약 필터, id로 단건 조회)
     bookProgressService.ts    # users/{userId}/bookProgress 조회/저장/전체삭제
     participantsService.ts    # bookParticipants/{bookId}/members 조회/등록/삭제
@@ -154,7 +152,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
   1. **회독수(rereadCount)** 내림차순 — 회독을 많이 한 사람이 먼저.
   2. 회독수가 같으면 **총 진행률(totalProgressPercent)** 내림차순.
 - **TOP 3는 단상(포디움) 형식**으로 상단에 표시됩니다(`RankingPodium`, 2등-1등-3등 순으로 배치해 가운데 1등이 가장 높게 보임).
-- 그 아래로 **1등부터 50등까지**를 리스트로 나열합니다(`RankingListRow`). 각 행에는 프로필 사진(`photoURL`, 없으면 닉네임 이니셜 아바타), 닉네임, **현재 읽고 있는 위치**(`{책이름} {읽은 장수}/{전체 장수}`, `user.currentBookId`/`currentChapter`를 `src/data/books.ts`의 정적 데이터로 변환), 진척도 막대 그래프(`ProgressBar`) + 소수점 첫째 자리까지의 퍼센트가 표시됩니다. 포디움에도 동일하게 현재 읽는 위치가 표시됩니다.
+- 그 아래로 **1등부터 50등까지**를 리스트로 나열합니다(`RankingListRow`). 각 행에는 아바타(가입 시각 기반 배경색 + 십자가 아이콘), 닉네임, **현재 읽고 있는 위치**(`{책이름} {읽은 장수}/{전체 장수}`, `user.currentBookId`/`currentChapter`를 `src/data/books.ts`의 정적 데이터로 변환), 진척도 막대 그래프(`ProgressBar`) + 소수점 첫째 자리까지의 퍼센트가 표시됩니다. 포디움에도 동일하게 현재 읽는 위치가 표시됩니다.
 - 본인을 제외한 모든 참가자의 닉네임 옆에는 본명이 `(본명)` 형식으로 함께 표시됩니다. 본인 행에는 대신 `(나)`가 표시되고 주황색으로 강조됩니다.
 - **하단 탭바 바로 위에 내 등수 고정 표시**: 리스트를 드래그해서 내 등수 행이 화면에 보이는 동안에는 사라지고, 화면 밖으로 스크롤돼 안 보이게 되면 다시 하단에 떠서 고정됩니다(`FlatList`의 `onViewableItemsChanged`로 내 행의 가시성을 추적).
 
@@ -162,15 +160,12 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 
 - `npm run seed:ranking` — `src/scripts/seedTestRanking.ts`가 닉네임 `테스트유저01`~`테스트유저55`로 더미 유저 55명을 만듭니다(다른 시딩 스크립트와 마찬가지로 `serviceAccountKey.json` 필요).
 - 회독수는 0~3회 중 가중치를 둔 무작위값, 총 진행률은 0~100% 무작위값이고 **그 진행률에 맞춰 현재 읽고 있는 책/장수도 앞뒤가 맞게 계산**해서 넣습니다(랭킹 리스트의 "현재 읽고 있는 위치" 표시를 실제처럼 테스트할 수 있도록). `bookProgress` 서브컬렉션까지는 만들지 않으므로 로드맵/읽기 화면 테스트에는 쓸 수 없고, 랭킹 화면 전용입니다.
+- `createdAt`(가입 시각)도 최근 2년 내 무작위 시점으로 흩어 넣어서, `createdAt` 기반으로 계산되는 아바타 배경색이 55명 모두 다르게 나오도록 했습니다.
 - 테스트가 끝나면 `npm run reset:users`로 지울 수 있습니다(단, 이 스크립트는 테스트 유저뿐 아니라 **전체 유저**를 삭제하니 실제 가입자가 있다면 주의하세요).
 
 ## 마이페이지 (7단계)
 
-- **프로필 사진**: 아바타를 누르면 갤러리에서 사진을 골라(`expo-image-picker`) Firebase Storage(`profilePhotos/{userId}.jpg`)에 업로드하고 `users/{userId}.photoURL`에 저장합니다. 사진이 없으면(또는 로드에 실패하면) 닉네임 첫 글자 아바타가 대신 표시됩니다(랭킹 화면도 동일).
-  - React Native에서 로컬 이미지를 Blob으로 만들어(`fetch(uri).blob()`, 이후 `XMLHttpRequest` 방식으로도) 업로드하면 이 프로젝트의 Firebase SDK 버전 조합에서 `Firebase Storage: An unknown error occurred (storage/unknown)`로 실패하는 걸 실제 기기 테스트에서 확인했습니다. Blob 대신 `expo-file-system`의 `File.arrayBuffer()`로 파일을 직접 읽어 `ArrayBuffer`를 `uploadBytes`에 넘기는 방식으로 교체해 Blob 변환 자체를 우회했습니다(`profilePhotoService.ts`).
-  - 같은 경로(`profilePhotos/{userId}.jpg`)에 덮어써서 다운로드 URL 문자열이 이전과 동일해질 수 있는 경우를 대비해, 매번 값이 달라지는 쿼리 파라미터(`&_v=타임스탬프`)를 붙여 반환합니다 — RN `<Image>`가 이전 사진을 캐시로 계속 보여주는 것을 방지합니다.
-  - `Avatar` 컴포넌트는 이미지 로드가 실패하면(`onError`) 자동으로 닉네임 이니셜로 폴백하고, `photoURL`이 바뀌면 이전 실패 상태를 지우고 다시 시도합니다.
-  - 업로드 실패 시 실제 오류 메시지를 화면에 함께 보여주도록 바꿨습니다(콘솔에도 `console.error`로 남깁니다) — 원인 파악용입니다. Storage를 아직 콘솔에서 생성하지 않았거나 보안 규칙이 막고 있으면 이 메시지로 확인할 수 있습니다.
+- **프로필 아바타**: 사진 업로드 기능은 없앴습니다(Firebase Storage에 더 이상 의존하지 않습니다). 대신 `Avatar` 컴포넌트가 `users/{userId}.createdAt`(가입 시각, epoch ms)을 24비트 값으로 변환한 16진수(`#rrggbb`)를 배경색으로 쓰고 그 위에 흰색 십자가 아이콘(두 개의 `View`로 그린 도형, 아이콘 폰트 아님)을 표시합니다. 가입 시각이 곧 색이라 사람마다 다르고 항상 같은 색이 나옵니다. 마이페이지/랭킹 화면 모두 동일하게 적용됩니다.
 - **내 통계**: 전체 진행률, 연속 읽기(스트릭), 밀린 장수(읽기 화면과 동일하게 `computeLiveOverdueChapters`로 실시간 계산), **회독**(`rereadCount`, 예전 "다시 읽기" 칸에서 이름만 변경)을 카드로 표시합니다.
 - **닉네임 변경**: 평생 `NICKNAME_CHANGE_LIMIT`(기본 3회)까지만 가능합니다. 다른 유저와 중복되면 변경할 수 없고, 횟수를 다 쓰면 입력창 자체가 비활성화됩니다.
 - **로그아웃**: 확인 Alert 후 세션(AsyncStorage)을 지우고 로그인 화면으로 돌아갑니다.

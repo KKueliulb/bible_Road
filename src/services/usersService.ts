@@ -12,7 +12,7 @@ export interface RankingEntry {
   nickname: string;
   name: string;
   totalProgressPercent: number;
-  photoURL: string | null;
+  createdAt: number;
   rereadCount: number;
   currentBookName: string;
   currentChapter: number;
@@ -59,7 +59,6 @@ export async function createUser(name: string, nickname: string): Promise<{ id: 
     rereadCount: 0,
     roadmapStartTestament: 'OT',
     hasOnboarded: false,
-    photoURL: null,
     fcmToken: null,
     dailyReminderTime: '20:00',
     createdAt: Date.now(),
@@ -100,7 +99,7 @@ export function subscribeToRanking(onChange: (ranking: RankingEntry[]) => void):
         nickname: data.nickname,
         name: data.name,
         totalProgressPercent: data.totalProgressPercent,
-        photoURL: data.photoURL ?? null,
+        createdAt: data.createdAt,
         rereadCount: data.rereadCount,
         currentBookName: currentBook?.name ?? '',
         currentChapter: data.currentChapter,

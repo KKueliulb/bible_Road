@@ -1,51 +1,48 @@
-import React, { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { colors, typography } from '../../constants/theme';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 
 interface Props {
-  photoURL: string | null;
-  nickname: string;
+  createdAt: number;
   size: number;
 }
 
-/** 프로필 사진이 있으면 이미지로, 없으면(또는 로드 실패 시) 닉네임 첫 글자 아바타로 표시한다. */
-export default function Avatar({ photoURL, nickname, size }: Props) {
-  const [loadFailed, setLoadFailed] = useState(false);
-  // photoURL이 바뀌면(새 사진 업로드 등) 이전 URL에서의 로드 실패 상태를 지우고 새로 시도한다.
-  useEffect(() => {
-    setLoadFailed(false);
-  }, [photoURL]);
+/** 가입 시각(createdAt)을 24비트 값으로 변환한 16진수 색을 배경으로 쓴다. 사람마다 고유하고 항상 같은 색이 나온다. */
+function colorFromCreatedAt(createdAt: number): string {
+  const hex = (createdAt % 0xffffff).toString(16).padStart(6, '0');
+  return `#${hex}`;
+}
 
+/** 프로필 사진 대신, 가입 시각 기반 배경색 위에 십자가 아이콘을 표시한다. */
+export default function Avatar({ createdAt, size }: Props) {
   const containerStyle = { width: size, height: size, borderRadius: size / 2 };
+  const backgroundColor = colorFromCreatedAt(createdAt);
 
-  if (photoURL && !loadFailed) {
-    return (
-      <Image
-        source={{ uri: photoURL }}
-        style={[styles.image, containerStyle]}
-        onError={() => setLoadFailed(true)}
-      />
-    );
-  }
+  const verticalBar = {
+    width: Math.max(2, size * 0.14),
+    height: size * 0.56,
+    borderRadius: size * 0.03,
+  };
+  const horizontalBar = {
+    width: size * 0.56,
+    height: Math.max(2, size * 0.14),
+    borderRadius: size * 0.03,
+  };
 
   return (
-    <View style={[styles.fallback, containerStyle]}>
-      <Text style={[styles.fallbackText, { fontSize: size * 0.4 }]}>{nickname.slice(0, 1)}</Text>
+    <View style={[styles.container, containerStyle, { backgroundColor }]}>
+      <View style={[styles.bar, verticalBar]} />
+      <View style={[styles.bar, horizontalBar]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  image: {
-    backgroundColor: colors.surface,
-  },
-  fallback: {
-    backgroundColor: colors.navy,
+  container: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fallbackText: {
-    ...typography.h2,
-    color: '#fff',
+  bar: {
+    position: 'absolute',
+    backgroundColor: '#fff',
   },
 });
