@@ -9,6 +9,7 @@ const usersCollection = collection(db, 'users');
 export interface RankingEntry {
   userId: string;
   nickname: string;
+  name: string;
   totalProgressPercent: number;
   photoURL: string | null;
 }
@@ -86,6 +87,7 @@ export function subscribeToRanking(onChange: (ranking: RankingEntry[]) => void):
         return {
           userId: docSnap.id,
           nickname: data.nickname,
+          name: data.name,
           totalProgressPercent: data.totalProgressPercent,
           photoURL: data.photoURL ?? null,
         };

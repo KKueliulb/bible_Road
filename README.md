@@ -83,6 +83,7 @@ src/
     common/                  # Avatar (프로필 사진 또는 닉네임 이니셜 폴백)
     roadmap/                 # HomeTopBar, TodayGoalFloatingBar, TestamentDropdown, RoadmapNode(그라데이션+병합된 참여자 카드 포함), RoadmapConnector
     reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList
+    ranking/                 # RankingPodium(TOP 3 단상), RankingListRow, ProgressBar
   context/AuthContext.tsx    # 로그인 상태, 세션 복원, refreshUser
   services/
     firebase.ts              # Firebase 초기화 (Firestore + Storage)
@@ -110,7 +111,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
   - **표시 구간은 24시간 동안 고정됩니다**(`computeTodayGoalRange`). "읽었어요!"를 누르는 순간 화면이 곧바로 다음 구간으로 넘어가 버려서 마치 오늘 목표를 아직 못 채운 것처럼 보이던 문제를 고쳤습니다 — 오늘 이미 읽었으면 다음 날이 되기 전까지는 방금 끝낸 구간 + 체크 표시를 그대로 보여줍니다. 읽기 화면의 "오늘의 목표" 카드도 동일하게 동작합니다.
 - 구약/신약 드롭다운으로 전환하면 해당 테스타먼트의 책들이 지그재그 노드로 표시되고, 노드 사이는 `react-native-svg` `Path`로 그린 S자 곡선 점선(`RoadmapConnector`)으로 연결됩니다.
 - **노드는 한 화면에 약 3권 정도만 보이는 크기로 표시**되고, 원 안에 책 이름 + 읽은 장수/전체 장수를 직접 표시합니다.
-- 노드 색상으로 완독/진행중/미시작 상태를 구분합니다(완독=네이비 그라데이션, 진행중=오렌지 단색 + 뒤쪽에 같은 색 반투명 백라이트 원, 미시작=흰색 플랫). 진행 상태는 `users/{userId}/bookProgress` 문서(없으면 미시작, `currentBookId`와 같으면 진행중)로 판단합니다. **완독한 노드는 이름/장수 아래에 "완독" 텍스트가 표시됩니다**(체크마크 오버레이는 제거).
+- 노드 색상으로 완독/진행중/미시작 상태를 구분합니다(완독=네이비 그라데이션, 진행중=오렌지 그라데이션, 미시작=흰색 플랫). `expo-linear-gradient`로 그립니다. 진행 상태는 `users/{userId}/bookProgress` 문서(없으면 미시작, `currentBookId`와 같으면 진행중)로 판단합니다. **완독한 노드는 이름/장수 아래에 "완독" 텍스트가 표시됩니다**(체크마크 오버레이는 제거).
 - **참여인원 정보는 노드 옆(정렬 방향 그대로, 노드 다음 자리)에 표시**됩니다. 진행중인 노드는 참여인원 수 + 실시간 닉네임 목록이 하나의 카드로 합쳐져 표시되고, 그 외 노드는 참여인원 수만 표시됩니다. 모든 책의 참여인원 수는 각자 실시간(onSnapshot)으로 구독되어, 다른 사람이 참여/이탈하면 바로 반영됩니다.
 - **미시작(not_started)·완독(completed) 상태인 책은 눌러도 들어갈 수 없습니다** — 안내 메시지만 뜨고 읽기 화면으로 이동하지 않습니다. 진행중(in_progress) 상태인 책만 진입 가능합니다.
 - 진입 가능한 노드를 누르면 `bookParticipants/{bookId}/members/{userId}`에 자동으로 참여 등록되고, 읽기 화면으로 이동합니다.
@@ -133,6 +134,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
   
   즉 **"읽었어요!"는 밀린 장수를 늘리지도 줄이지도 않고(그 자리에서 공백을 확정만 시킴), 오직 "N장 더 읽었어요!"만 실제로 줄입니다.**
 - 화이팅 버튼은 `cheerLogs/{fromUserId_toUserId_date}` 문서 존재 여부로 하루 1회 제한을 클라이언트에서 체크합니다. 실제 푸시 알림(FCM)은 9단계에서 Cloud Functions로 붙일 예정입니다.
+- **홈으로 나가는 뒤로가기 버튼은 화살표(`<`)만 표시**됩니다(`headerBackButtonDisplayMode: 'minimal'`) — iOS에서 화살표 옆에 이전 화면 제목이 함께 붙어 나오던 것을 없앴습니다.
 
 ### 개발 중 테스트하기 (책 잠금 / 밀린 장수)
 
@@ -142,12 +144,15 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 ## 랭킹 (6단계)
 
 - `users` 컬렉션을 `totalProgressPercent`(전체 진행률) 내림차순으로 **실시간(onSnapshot)** 구독해 순위를 매깁니다.
-- 각 행에 프로필 사진(`photoURL`, 없으면 닉네임 이니셜 아바타)이 표시됩니다.
-- 본인 행은 주황색으로 강조 표시됩니다.
+- **TOP 3는 단상(포디움) 형식**으로 상단에 표시됩니다(`RankingPodium`, 2등-1등-3등 순으로 배치해 가운데 1등이 가장 높게 보임).
+- 그 아래로 **1등부터 50등까지**를 리스트로 나열합니다(`RankingListRow`). 각 행에는 프로필 사진(`photoURL`, 없으면 닉네임 이니셜 아바타), 닉네임, 진척도 막대 그래프(`ProgressBar`) + 소수점 첫째 자리까지의 퍼센트가 표시됩니다.
+- 본인을 제외한 모든 참가자의 닉네임 옆에는 본명이 `(본명)` 형식으로 함께 표시됩니다. 본인 행에는 대신 `(나)`가 표시되고 주황색으로 강조됩니다.
+- **하단 탭바 바로 위에 내 등수 고정 표시**: 리스트를 드래그해서 내 등수 행이 화면에 보이는 동안에는 사라지고, 화면 밖으로 스크롤돼 안 보이게 되면 다시 하단에 떠서 고정됩니다(`FlatList`의 `onViewableItemsChanged`로 내 행의 가시성을 추적).
 
 ## 마이페이지 (7단계)
 
 - **프로필 사진**: 아바타를 누르면 갤러리에서 사진을 골라(`expo-image-picker`) Firebase Storage(`profilePhotos/{userId}.jpg`)에 업로드하고 `users/{userId}.photoURL`에 저장합니다. 사진이 없으면 닉네임 첫 글자 아바타가 대신 표시됩니다(랭킹 화면도 동일).
+  - 로컬 이미지를 Blob으로 변환할 때 React Native의 `fetch(uri).blob()`은 종종 깨지거나 빈 Blob을 만들어(권한 허용과 업로드 자체는 되지만 사진이 실제로는 바뀌지 않는 것처럼 보이는 원인) Firebase가 RN 환경에 공식 권장하는 `XMLHttpRequest` 기반 변환 방식으로 교체했습니다(`profilePhotoService.ts`).
 - **내 통계**: 전체 진행률, 연속 읽기(스트릭), 밀린 장수(읽기 화면과 동일하게 `computeLiveOverdueChapters`로 실시간 계산), 다시 읽기 횟수를 카드로 표시합니다.
 - **닉네임 변경**: 평생 `NICKNAME_CHANGE_LIMIT`(기본 3회)까지만 가능합니다. 다른 유저와 중복되면 변경할 수 없고, 횟수를 다 쓰면 입력창 자체가 비활성화됩니다.
 - **처음부터 다시 읽기(초기화)**: 확인 Alert를 거친 뒤 실행되는 되돌릴 수 없는 동작입니다.

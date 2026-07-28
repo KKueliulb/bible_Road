@@ -18,7 +18,7 @@ export default function RoadmapStack() {
       <Stack.Screen
         name="Reading"
         component={ReadingScreen}
-        options={({ route }) => ({ title: route.params.bookName })}
+        options={({ route }) => ({ title: route.params.bookName, headerBackButtonDisplayMode: 'minimal' })}
       />
     </Stack.Navigator>
   );

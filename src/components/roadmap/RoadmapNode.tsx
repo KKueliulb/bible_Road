@@ -19,7 +19,6 @@ interface Props {
 }
 
 export const NODE_SIZE = 88;
-const HALO_SIZE = NODE_SIZE * 1.4;
 
 export default function RoadmapNode({
   book,
@@ -53,13 +52,10 @@ export default function RoadmapNode({
   return (
     <View style={[styles.row, alignRight && styles.rowReversed]}>
       <View style={styles.nodeContainer}>
-        {isInProgress && <View pointerEvents="none" style={styles.halo} />}
         <Pressable onPress={onPress}>
-          {isInProgress ? (
-            <View style={[styles.node, styles.nodeInProgress]}>{nodeContent}</View>
-          ) : isCompleted ? (
+          {isInProgress || isCompleted ? (
             <LinearGradient
-              colors={gradients.navy}
+              colors={isCompleted ? gradients.navy : gradients.orange}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.node}
@@ -115,14 +111,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  halo: {
-    position: 'absolute',
-    width: HALO_SIZE,
-    height: HALO_SIZE,
-    borderRadius: HALO_SIZE / 2,
-    backgroundColor: colors.orange,
-    opacity: 0.25,
-  },
   node: {
     width: NODE_SIZE,
     height: NODE_SIZE,
@@ -133,9 +121,6 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
     paddingHorizontal: spacing.sm,
     overflow: 'hidden',
-  },
-  nodeInProgress: {
-    backgroundColor: colors.orange,
   },
   nodeNotStarted: {
     backgroundColor: '#fff',
