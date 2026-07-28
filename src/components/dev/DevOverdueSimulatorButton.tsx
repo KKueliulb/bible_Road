@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { updateUser } from '../../services/usersService';
-import { colors } from '../../constants/theme';
+import { colors, fonts } from '../../constants/theme';
 
 const TWO_DAYS_MS = 2 * 86400000;
 
@@ -64,6 +64,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   text: {
+    fontFamily: fonts.regular,
     fontSize: 12,
     color: colors.textSecondary,
     textAlign: 'center',

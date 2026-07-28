@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { colors } from '../../constants/theme';
+import { colors, fonts } from '../../constants/theme';
 
 const TEST_NICKNAME = '테스트유저';
 
@@ -61,6 +61,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   divider: {
+    fontFamily: fonts.regular,
     fontSize: 11,
     color: colors.textSecondary,
     marginBottom: 8,
@@ -74,10 +75,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   buttonText: {
+    fontFamily: fonts.regular,
     fontSize: 13,
     color: colors.textSecondary,
   },
   error: {
+    fontFamily: fonts.regular,
     fontSize: 12,
     color: colors.danger,
     marginTop: 6,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../../constants/theme';
+import { colors, fonts, radius, spacing, typography } from '../../constants/theme';
 
 interface Props {
   totalChapters: number;
@@ -34,23 +34,23 @@ const CELL_SIZE = 32;
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    marginTop: 8,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.sm,
   },
   title: {
-    fontSize: 13,
+    ...typography.caption,
     color: colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: spacing.sm - 2,
   },
   cell: {
     width: CELL_SIZE,
     height: CELL_SIZE,
-    borderRadius: 6,
+    borderRadius: radius.sm - 2,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
@@ -61,11 +61,12 @@ const styles = StyleSheet.create({
     borderColor: colors.navy,
   },
   cellText: {
+    fontFamily: fonts.regular,
     fontSize: 12,
     color: colors.textSecondary,
   },
   cellTextRead: {
     color: '#fff',
-    fontWeight: '600',
+    fontFamily: fonts.bold,
   },
 });

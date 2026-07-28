@@ -13,7 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { changeNickname } from '../../services/usersService';
 import { computeLiveOverdueChapters, resetUserProgress } from '../../services/readingService';
 import { NICKNAME_CHANGE_LIMIT } from '../../constants/profileConfig';
-import { colors } from '../../constants/theme';
+import { colors, radius, spacing, typography } from '../../constants/theme';
 
 export default function MyPageScreen() {
   const { userId, user, logout, refreshUser } = useAuth();
@@ -86,6 +86,9 @@ export default function MyPageScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>{user.nickname.slice(0, 1)}</Text>
+      </View>
       <Text style={styles.name}>{user.name}</Text>
       <Text style={styles.nickname}>@{user.nickname}</Text>
 
@@ -166,35 +169,47 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    padding: 24,
+    padding: spacing.xl,
   },
   spinner: {
-    marginTop: 40,
+    marginTop: spacing.xxl + spacing.sm,
+  },
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.navy,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  avatarText: {
+    ...typography.h2,
+    color: '#fff',
   },
   name: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...typography.h2,
     color: colors.navy,
     textAlign: 'center',
   },
   nickname: {
-    fontSize: 14,
+    ...typography.caption,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 24,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xl,
   },
   statsCard: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 32,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.xxl,
   },
   statRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: spacing.sm + 2,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -202,85 +217,87 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   statLabel: {
+    ...typography.body,
     fontSize: 14,
     color: colors.textSecondary,
   },
   statValue: {
+    ...typography.bodyBold,
     fontSize: 14,
-    fontWeight: '600',
     color: colors.navy,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: '700',
+    ...typography.h3,
     color: colors.navy,
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   helperText: {
-    fontSize: 12,
+    ...typography.small,
     color: colors.textSecondary,
-    marginBottom: 10,
+    marginBottom: spacing.sm + 2,
   },
   nicknameRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: spacing.sm,
   },
   input: {
     flex: 1,
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md + 2,
+    paddingVertical: spacing.sm + 2,
+    fontFamily: typography.body.fontFamily,
     fontSize: 15,
+    color: colors.textPrimary,
   },
   inputDisabled: {
     opacity: 0.5,
   },
   smallButton: {
     backgroundColor: colors.navy,
-    borderRadius: 8,
-    paddingHorizontal: 18,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg + 2,
     justifyContent: 'center',
   },
   smallButtonText: {
+    ...typography.captionBold,
     color: '#fff',
     fontSize: 14,
-    fontWeight: '600',
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   error: {
+    ...typography.small,
     color: colors.danger,
-    fontSize: 12,
-    marginTop: 6,
+    marginTop: spacing.sm - 2,
   },
   success: {
-    color: colors.navy,
-    fontSize: 12,
-    marginTop: 6,
+    ...typography.small,
+    color: colors.success,
+    marginTop: spacing.sm - 2,
   },
   dangerButton: {
     borderWidth: 1,
     borderColor: colors.danger,
-    borderRadius: 8,
-    paddingVertical: 14,
+    borderRadius: radius.md,
+    paddingVertical: spacing.lg - 2,
     alignItems: 'center',
-    marginTop: 32,
+    marginTop: spacing.xxl,
   },
   dangerButtonText: {
+    ...typography.bodyBold,
     color: colors.danger,
-    fontSize: 15,
-    fontWeight: '600',
   },
   logoutButton: {
     alignItems: 'center',
-    marginTop: 16,
-    paddingVertical: 12,
+    marginTop: spacing.lg,
+    paddingVertical: spacing.md,
   },
   logoutButtonText: {
-    color: colors.textSecondary,
+    ...typography.body,
     fontSize: 14,
+    color: colors.textSecondary,
   },
 });

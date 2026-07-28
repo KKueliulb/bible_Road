@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
-import { colors } from '../../constants/theme';
+import { colors, fonts, radius, spacing, typography } from '../../constants/theme';
 import { AuthStackParamList } from '../../navigation/AuthStack';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
@@ -55,7 +55,11 @@ export default function LoginScreen({ navigation, route }: Props) {
         />
       </View>
 
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && (
+        <View style={styles.errorBox}>
+          <Text style={styles.error}>{error}</Text>
+        </View>
+      )}
 
       <Pressable
         style={[styles.button, isSubmitting && styles.buttonDisabled]}
@@ -80,64 +84,71 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: 24,
+    padding: spacing.xl,
     justifyContent: 'center',
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    ...typography.h1,
     color: colors.navy,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 32,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xxl,
   },
   field: {
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   label: {
-    fontSize: 13,
+    ...typography.caption,
     color: colors.textSecondary,
-    marginBottom: 6,
+    marginBottom: spacing.sm,
   },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    fontFamily: fonts.regular,
     fontSize: 16,
+    color: colors.textPrimary,
+  },
+  errorBox: {
+    backgroundColor: colors.dangerLight,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
   },
   error: {
+    ...typography.caption,
     color: colors.danger,
-    fontSize: 13,
-    marginBottom: 12,
   },
   button: {
     backgroundColor: colors.navy,
-    borderRadius: 8,
-    paddingVertical: 14,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md + 2,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
+    ...typography.bodyBold,
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
   },
   linkButton: {
-    marginTop: 20,
+    marginTop: spacing.xl - 4,
     alignItems: 'center',
   },
   linkText: {
+    ...typography.caption,
     color: colors.navy,
-    fontSize: 13,
   },
 });

@@ -17,7 +17,7 @@ import { BookProgressDoc, BookProgressStatus, Testament } from '../../types/mode
 import TestamentDropdown from '../../components/roadmap/TestamentDropdown';
 import RoadmapNode from '../../components/roadmap/RoadmapNode';
 import ParticipantListInline from '../../components/roadmap/ParticipantListInline';
-import { colors } from '../../constants/theme';
+import { colors, spacing, typography } from '../../constants/theme';
 
 type Props = NativeStackScreenProps<RoadmapStackParamList, 'RoadmapHome'>;
 
@@ -157,15 +157,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    paddingBottom: 32,
+    paddingBottom: spacing.xxl,
   },
   spinner: {
-    marginTop: 40,
+    marginTop: spacing.xxl + spacing.sm,
   },
   error: {
+    ...typography.body,
     textAlign: 'center',
     color: colors.danger,
-    marginTop: 24,
-    paddingHorizontal: 24,
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.xl,
   },
 });

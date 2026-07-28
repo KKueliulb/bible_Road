@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Participant } from '../../services/participantsService';
-import { colors } from '../../constants/theme';
+import { colors, radius, spacing, typography } from '../../constants/theme';
 
 interface Props {
   participants: Participant[];
@@ -56,41 +56,41 @@ export default function MemberProgressList({
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 24,
-    paddingHorizontal: 16,
-    paddingBottom: 32,
+    marginTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
   title: {
+    ...typography.bodyBold,
     fontSize: 14,
-    fontWeight: '700',
     color: colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: spacing.sm + 2,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   nickname: {
+    ...typography.body,
     fontSize: 14,
     color: colors.textPrimary,
   },
   cheerButton: {
     borderWidth: 1,
     borderColor: colors.orange,
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
   },
   cheerButtonDisabled: {
     borderColor: colors.border,
   },
   cheerText: {
-    fontSize: 12,
-    fontWeight: '600',
+    ...typography.smallBold,
     color: colors.orange,
   },
   cheerTextDisabled: {

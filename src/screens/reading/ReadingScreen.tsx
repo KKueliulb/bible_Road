@@ -17,7 +17,7 @@ import ReadButton from '../../components/reading/ReadButton';
 import ExtraReadDropdownButton from '../../components/reading/ExtraReadDropdownButton';
 import MemberProgressList from '../../components/reading/MemberProgressList';
 import DevOverdueSimulatorButton from '../../components/dev/DevOverdueSimulatorButton';
-import { colors } from '../../constants/theme';
+import { colors, spacing, typography } from '../../constants/theme';
 
 type Props = NativeStackScreenProps<RoadmapStackParamList, 'Reading'>;
 
@@ -217,12 +217,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   spinner: {
-    marginTop: 40,
+    marginTop: spacing.xxl + spacing.sm,
   },
   error: {
+    ...typography.body,
     textAlign: 'center',
     color: colors.danger,
-    marginTop: 40,
-    paddingHorizontal: 24,
+    marginTop: spacing.xxl + spacing.sm,
+    paddingHorizontal: spacing.xl,
   },
 });

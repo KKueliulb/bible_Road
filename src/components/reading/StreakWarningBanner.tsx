@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../../constants/theme';
+import { colors, radius, spacing, typography } from '../../constants/theme';
 
 interface Props {
   graceDaysLeft: number;
@@ -26,15 +26,14 @@ export default function StreakWarningBanner({ graceDaysLeft, overdueChapters }: 
 
 const styles = StyleSheet.create({
   banner: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#FFF1E6',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.orangeLight,
   },
   text: {
-    fontSize: 13,
+    ...typography.captionBold,
     color: colors.orange,
-    fontWeight: '600',
   },
 });

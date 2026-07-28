@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Testament } from '../../types/models';
-import { colors } from '../../constants/theme';
+import { colors, radius, spacing, typography } from '../../constants/theme';
 
 interface Props {
   value: Testament;
@@ -36,22 +36,22 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignSelf: 'center',
-    backgroundColor: '#F1F2F4',
-    borderRadius: 999,
-    padding: 4,
-    marginVertical: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+    padding: spacing.xs,
+    marginVertical: spacing.md,
   },
   option: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 999,
+    paddingHorizontal: spacing.xl - 4,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
   },
   optionActive: {
     backgroundColor: colors.navy,
   },
   optionText: {
+    ...typography.bodyBold,
     fontSize: 14,
-    fontWeight: '600',
     color: colors.textSecondary,
   },
   optionTextActive: {

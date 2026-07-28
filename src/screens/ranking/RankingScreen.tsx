@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { RankingEntry, subscribeToRanking } from '../../services/usersService';
-import { colors } from '../../constants/theme';
+import { colors, fonts, radius, spacing, typography } from '../../constants/theme';
+
+const MEDAL = ['🥇', '🥈', '🥉'];
 
 export default function RankingScreen() {
   const { userId } = useAuth();
@@ -22,9 +24,10 @@ export default function RankingScreen() {
       ListEmptyComponent={<Text style={styles.empty}>아직 참여한 유저가 없어요.</Text>}
       renderItem={({ item, index }) => {
         const isMe = item.userId === userId;
+        const medal = MEDAL[index];
         return (
           <View style={[styles.row, isMe && styles.rowMe]}>
-            <Text style={[styles.rank, isMe && styles.textMe]}>{index + 1}</Text>
+            <Text style={[styles.rank, isMe && styles.textMe]}>{medal ?? index + 1}</Text>
             <Text style={[styles.nickname, isMe && styles.textMe]} numberOfLines={1}>
               {item.nickname}
               {isMe ? ' (나)' : ''}
@@ -43,44 +46,44 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    padding: 16,
+    padding: spacing.lg,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    paddingVertical: spacing.md + 2,
+    paddingHorizontal: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   rowMe: {
-    backgroundColor: '#FFF3E9',
-    borderRadius: 8,
+    backgroundColor: colors.orangeLight,
+    borderRadius: radius.md,
     borderBottomWidth: 0,
   },
   rank: {
-    width: 32,
-    fontSize: 15,
-    fontWeight: '700',
+    width: 36,
+    fontFamily: fonts.bold,
+    fontSize: 16,
     color: colors.textSecondary,
   },
   nickname: {
+    ...typography.body,
     flex: 1,
-    fontSize: 15,
     color: colors.textPrimary,
-    marginRight: 8,
+    marginRight: spacing.sm,
   },
   percent: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...typography.bodyBold,
     color: colors.navy,
   },
   textMe: {
     color: colors.orange,
   },
   empty: {
+    ...typography.body,
     textAlign: 'center',
     color: colors.textSecondary,
-    marginTop: 40,
+    marginTop: spacing.xxl + spacing.sm,
   },
 });

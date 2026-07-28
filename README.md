@@ -2,7 +2,7 @@
 
 교회 청년부 대상 성경 통독 습관 앱. Expo(React Native) + Firebase(Firestore/FCM) 기반.
 
-> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~8단계 (프로젝트 셋업 / 정적 데이터 시딩 / 인증 / 홈 로드맵 / 읽기 화면 / 랭킹 / 마이페이지 / 온보딩)**.
+> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~8단계 + 10단계 일부 (프로젝트 셋업 / 정적 데이터 시딩 / 인증 / 홈 로드맵 / 읽기 화면 / 랭킹 / 마이페이지 / 온보딩 / 디자인 폴리싱)**. 9단계(Cloud Functions·푸시 알림)는 아직입니다.
 
 ## 시작하기
 
@@ -94,9 +94,10 @@ src/
   scripts/seedBooks.ts         # books 컬렉션 시딩 스크립트 (firebase-admin)
   types/models.ts              # Firestore 데이터 모델 타입
   constants/
-    theme.ts                   # 색상 등 최소 디자인 토큰 (폴리싱은 이후 단계)
+    theme.ts                   # 폰트/spacing/radius/색상/타이포그래피 디자인 토큰 (아래 "디자인 폴리싱" 참고)
     readingConfig.ts            # DAILY_CHAPTER_GOAL (하루 기본 목표 장수, 여기서 조정)
     profileConfig.ts             # NICKNAME_CHANGE_LIMIT (닉네임 변경 가능 횟수, 여기서 조정)
+assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OFL-1.1, LICENSE.txt 참고)
 ```
 
 ## 홈 로드맵 (4단계)
@@ -156,6 +157,18 @@ src/
   - 신약부터: 마태복음(1)~요한계시록(27)~창세기(28)~말라기(66) — 신약을 앞으로 당겨서 재배열.
 - 이 선택은 `users/{userId}`의 `roadmapStartTestament`에 저장되고, `src/data/books.ts`의 `getPersonalizedSequence`/`getDisplayOrder`가 이 값을 기준으로 **완독 시 다음 책 자동 진행 순서**와 **로드맵 노드에 표시되는 1~66 번호**를 둘 다 재배열합니다. 구약/신약 드롭다운으로 각 테스타먼트 안의 책 목록을 보는 것 자체는 그대로 유지되고, 번호만 개인화됩니다.
 - 온보딩 완료 시 `currentTestament`/`currentBookId`/`currentChapter`가 선택한 시작 성경의 1번 책으로 설정되고 `hasOnboarded: true`로 바뀝니다. 이후 다시 온보딩 화면으로 돌아오지 않습니다(변경하려면 아직 별도 기능이 없습니다).
+
+## 디자인 폴리싱 (10단계 일부)
+
+9단계(Cloud Functions·푸시 알림) 전에 먼저 진행했습니다. 색 조합(네이비+오렌지)은 유지하고 보조 톤/폰트/여백만 정리했습니다.
+
+- **폰트**: 나눔스퀘어라운드(Regular/Bold)를 `assets/fonts/`에 TTF로 번들링하고 `App.tsx`에서 `expo-font`의 `useFonts`로 로드합니다. 로드가 끝나기 전에는 로딩 스피너만 보이고, 끝나면 전체 화면에 적용됩니다(라이선스: OFL-1.1, `assets/fonts/LICENSE.txt` 참고).
+  - 커스텀 폰트에 `fontWeight`를 같이 주면 기기에 따라 가짜 볼드가 겹쳐 보일 수 있어서, 굵기는 `fontWeight` 대신 `theme.ts`의 `fonts.regular`/`fonts.bold` 두 폰트 패밀리로 표현합니다.
+- **`src/constants/theme.ts`에 토큰 4종 추가**:
+  - `spacing` (4/8/12/16/24/32), `radius` (8/12/16/999) — 화면마다 제각각이던 padding/margin/borderRadius 숫자를 통일했습니다.
+  - `colors`에 `navyLight`/`orangeLight`/`surface`/`dangerLight`/`success`/`successLight` 등 보조 톤을 추가해 기존에 각 파일마다 따로 적던 `#FFF1E6` 같은 하드코딩 색을 정리했습니다.
+  - `typography`에 `h1`/`h2`/`h3`/`body`/`bodyBold`/`caption`/`captionBold`/`small`/`smallBold` 프리셋을 만들어 폰트 패밀리+크기를 한 번에 지정합니다.
+- **화면별 반영**: 로그인/회원가입/온보딩, 홈 로드맵(진행중 노드에 그림자 강조, 상태 라벨 색상화), 읽기 화면(밀린 장수 있을 때 빨간색/없을 때 초록색, 읽었어요 버튼에 그림자), 랭킹(상위 3명 메달 이모지), 마이페이지(닉네임 이니셜 아바타)까지 전체 화면에 위 토큰을 적용했습니다.
 
 ## 다음 단계
 

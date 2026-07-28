@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../../constants/theme';
+import { colors, radius, spacing, typography } from '../../constants/theme';
 
 interface Props {
   maxAvailable: number;
@@ -60,23 +60,23 @@ export default function ExtraReadDropdownButton({
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
-    marginTop: 12,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
   },
   toggle: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: colors.navy,
-    borderRadius: 10,
-    paddingVertical: 14,
+    borderRadius: radius.md,
+    paddingVertical: spacing.lg - 2,
     alignItems: 'center',
   },
   toggleDone: {
     borderColor: colors.border,
   },
   toggleText: {
+    ...typography.bodyBold,
     color: colors.navy,
     fontSize: 15,
-    fontWeight: '700',
   },
   toggleTextDone: {
     color: colors.textSecondary,
@@ -84,19 +84,18 @@ const styles = StyleSheet.create({
   options: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
   option: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 999,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md + 2,
+    paddingVertical: spacing.sm,
   },
   optionText: {
-    fontSize: 13,
+    ...typography.captionBold,
     color: colors.textPrimary,
-    fontWeight: '600',
   },
 });

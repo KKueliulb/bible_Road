@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Participant } from '../../services/participantsService';
-import { colors } from '../../constants/theme';
+import { colors, fonts, radius, spacing, typography } from '../../constants/theme';
 
 interface Props {
   participants: Participant[];
@@ -32,33 +32,33 @@ export default function ParticipantListInline({ participants }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 8,
-    marginBottom: 16,
-    paddingHorizontal: 16,
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   title: {
-    fontSize: 12,
+    ...typography.small,
     color: colors.textSecondary,
-    marginBottom: 6,
+    marginBottom: spacing.sm - 2,
   },
   list: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: spacing.sm - 2,
   },
   chip: {
-    backgroundColor: '#FFF1E6',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: colors.orangeLight,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md - 2,
+    paddingVertical: spacing.xs,
   },
   chipText: {
-    fontSize: 12,
+    ...typography.smallBold,
     color: colors.orange,
-    fontWeight: '600',
+    fontFamily: fonts.bold,
   },
   emptyText: {
-    fontSize: 12,
+    ...typography.small,
     color: colors.textSecondary,
   },
 });

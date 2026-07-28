@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
-import { colors } from '../../constants/theme';
+import { colors, radius, spacing, typography } from '../../constants/theme';
 
 interface Props {
   onPress: () => void;
@@ -31,23 +31,30 @@ export default function ReadButton({ onPress, isSubmitting, alreadyDoneToday }: 
 
 const styles = StyleSheet.create({
   button: {
-    marginHorizontal: 16,
-    marginTop: 16,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
     backgroundColor: colors.orange,
-    borderRadius: 10,
-    paddingVertical: 16,
+    borderRadius: radius.md,
+    paddingVertical: spacing.lg,
     alignItems: 'center',
+    shadowColor: colors.orange,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   buttonDone: {
     backgroundColor: colors.border,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   buttonSubmitting: {
     opacity: 0.6,
   },
   text: {
+    ...typography.bodyBold,
     color: '#fff',
     fontSize: 16,
-    fontWeight: '700',
   },
   textDone: {
     color: colors.textSecondary,

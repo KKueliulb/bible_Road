@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../../constants/theme';
+import { colors, radius, spacing, typography } from '../../constants/theme';
 
 interface Props {
   bookName: string;
@@ -20,7 +20,7 @@ export default function TodayGoalCard({ bookName, nextStart, nextEnd, overdueCha
           오늘의 목표: {bookName} {nextStart}장 ~ {nextEnd}장
         </Text>
       )}
-      <Text style={styles.overdueText}>
+      <Text style={[styles.overdueText, overdueChapters > 0 ? styles.overdueTextWarning : styles.overdueTextOk]}>
         {overdueChapters > 0 ? `밀린 장수: ${overdueChapters}장` : '밀린 장 없이 정상 진행 중이에요'}
       </Text>
     </View>
@@ -29,20 +29,25 @@ export default function TodayGoalCard({ bookName, nextStart, nextEnd, overdueCha
 
 const styles = StyleSheet.create({
   card: {
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#F5F6F8',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
   },
   goalText: {
-    fontSize: 15,
-    fontWeight: '700',
+    ...typography.bodyBold,
     color: colors.navy,
   },
   overdueText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 6,
+    ...typography.caption,
+    marginTop: spacing.sm - 2,
+  },
+  overdueTextWarning: {
+    color: colors.danger,
+    fontFamily: typography.captionBold.fontFamily,
+  },
+  overdueTextOk: {
+    color: colors.success,
   },
 });

@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useAuth } from '../../context/AuthContext';
 import { completeOnboarding } from '../../services/usersService';
 import { Testament } from '../../types/models';
-import { colors } from '../../constants/theme';
+import { colors, radius, spacing, typography } from '../../constants/theme';
 
 export default function OnboardingScreen() {
   const { userId, refreshUser } = useAuth();
@@ -64,28 +64,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: 24,
+    padding: spacing.xl,
     justifyContent: 'center',
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
+    ...typography.h2,
     color: colors.navy,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14,
+    ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 40,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xxl + spacing.sm,
     lineHeight: 20,
   },
   optionButton: {
-    borderRadius: 12,
-    paddingVertical: 20,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.xl - 4,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   optionOT: {
     backgroundColor: colors.navy,
@@ -94,14 +93,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.orange,
   },
   optionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    ...typography.h3,
     color: '#fff',
   },
   optionDesc: {
-    fontSize: 13,
+    ...typography.caption,
     color: '#fff',
-    marginTop: 4,
+    marginTop: spacing.xs,
     opacity: 0.85,
   },
 });

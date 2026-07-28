@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Book } from '../../services/booksService';
 import { BookProgressStatus } from '../../types/models';
-import { colors } from '../../constants/theme';
+import { colors, fonts, spacing, typography } from '../../constants/theme';
 
 interface Props {
   book: Book;
@@ -17,6 +17,12 @@ const STATUS_LABEL: Record<BookProgressStatus, string> = {
   completed: '완독',
   in_progress: '진행중',
   not_started: '미시작',
+};
+
+const STATUS_COLOR: Record<BookProgressStatus, string> = {
+  completed: colors.navy,
+  in_progress: colors.orange,
+  not_started: colors.textSecondary,
 };
 
 export default function RoadmapNode({ book, status, index, displayOrder, participantCount, onPress }: Props) {
@@ -45,7 +51,14 @@ export default function RoadmapNode({ book, status, index, displayOrder, partici
       <View style={styles.info}>
         <Text style={styles.bookName}>{book.name}</Text>
         <Text style={styles.statusLabel}>
-          {STATUS_LABEL[status]} · 전체 {book.totalChapters}장 · 참여 {participantCount}명
+          <Text style={[styles.statusLabelBold, { color: STATUS_COLOR[status] }]}>
+            {STATUS_LABEL[status]}
+          </Text>
+          {' · 전체 '}
+          {book.totalChapters}
+          {'장 · 참여 '}
+          {participantCount}
+          {'명'}
         </Text>
       </View>
     </View>
@@ -58,9 +71,9 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 12,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
+    gap: spacing.md,
   },
   rowReversed: {
     flexDirection: 'row-reverse',
@@ -80,14 +93,19 @@ const styles = StyleSheet.create({
   nodeInProgress: {
     backgroundColor: colors.orange,
     borderColor: colors.orange,
+    shadowColor: colors.orange,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
   nodeNotStarted: {
     backgroundColor: '#fff',
     borderColor: colors.border,
   },
   nodeText: {
+    fontFamily: fonts.bold,
     fontSize: 16,
-    fontWeight: '700',
   },
   nodeTextOnColor: {
     color: '#fff',
@@ -99,13 +117,15 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   bookName: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...typography.bodyBold,
     color: colors.textPrimary,
   },
   statusLabel: {
-    fontSize: 12,
+    ...typography.small,
     color: colors.textSecondary,
     marginTop: 2,
+  },
+  statusLabelBold: {
+    fontFamily: fonts.bold,
   },
 });
