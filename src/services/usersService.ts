@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, setDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
-import { UserDoc } from '../types/models';
-import { BOOKS } from '../data/books';
+import { Testament, UserDoc } from '../types/models';
+import { BOOKS, getPersonalizedSequence } from '../data/books';
 import { NICKNAME_CHANGE_LIMIT } from '../constants/profileConfig';
 
 const usersCollection = collection(db, 'users');
@@ -48,6 +48,8 @@ export async function createUser(name: string, nickname: string): Promise<{ id: 
     extraChaptersRepaid: 0,
     graceDaysLeft: 0,
     rereadCount: 0,
+    roadmapStartTestament: 'OT',
+    hasOnboarded: false,
     fcmToken: null,
     dailyReminderTime: '20:00',
     createdAt: Date.now(),
@@ -59,6 +61,18 @@ export async function createUser(name: string, nickname: string): Promise<{ id: 
 
 export async function updateUser(userId: string, updates: Partial<UserDoc>): Promise<void> {
   await setDoc(doc(usersCollection, userId), updates, { merge: true });
+}
+
+/** 온보딩에서 고른 시작 성경을 반영해 로드맵 진행 순서/현재 책을 설정하고 온보딩을 완료 처리한다. */
+export async function completeOnboarding(userId: string, startTestament: Testament): Promise<void> {
+  const firstBook = getPersonalizedSequence(startTestament)[0];
+  await updateUser(userId, {
+    roadmapStartTestament: startTestament,
+    hasOnboarded: true,
+    currentTestament: firstBook.testament,
+    currentBookId: firstBook.id,
+    currentChapter: 0,
+  });
 }
 
 /** 총 진행률(totalProgressPercent) 내림차순 랭킹을 실시간으로 구독한다. 반환값을 호출하면 구독이 해제된다. */

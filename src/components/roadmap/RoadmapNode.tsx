@@ -8,6 +8,7 @@ interface Props {
   book: Book;
   status: BookProgressStatus;
   index: number;
+  displayOrder: number;
   participantCount: number;
   onPress: () => void;
 }
@@ -18,7 +19,7 @@ const STATUS_LABEL: Record<BookProgressStatus, string> = {
   not_started: '미시작',
 };
 
-export default function RoadmapNode({ book, status, index, participantCount, onPress }: Props) {
+export default function RoadmapNode({ book, status, index, displayOrder, participantCount, onPress }: Props) {
   const alignRight = index % 2 === 1;
 
   return (
@@ -38,7 +39,7 @@ export default function RoadmapNode({ book, status, index, participantCount, onP
             status === 'not_started' ? styles.nodeTextMuted : styles.nodeTextOnColor,
           ]}
         >
-          {book.order}
+          {displayOrder}
         </Text>
       </Pressable>
       <View style={styles.info}>

@@ -2,7 +2,7 @@ import { Book } from './booksService';
 import { deleteAllProgress, saveBookProgress } from './bookProgressService';
 import { joinBookParticipants, removeParticipant } from './participantsService';
 import { updateUser } from './usersService';
-import { BOOKS, TOTAL_BIBLE_CHAPTERS } from '../data/books';
+import { getPersonalizedSequence, TOTAL_BIBLE_CHAPTERS } from '../data/books';
 import { DAILY_CHAPTER_GOAL } from '../constants/readingConfig';
 import { BookProgressDoc, UserDoc } from '../types/models';
 
@@ -143,9 +143,9 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
 
   if (user.currentBookId === book.id) {
     if (status === 'completed') {
-      const sortedBooks = [...BOOKS].sort((a, b) => a.order - b.order);
-      const currentIndex = sortedBooks.findIndex((b) => b.id === book.id);
-      const nextBook = sortedBooks[currentIndex + 1];
+      const sequence = getPersonalizedSequence(user.roadmapStartTestament ?? 'OT');
+      const currentIndex = sequence.findIndex((b) => b.id === book.id);
+      const nextBook = sequence[currentIndex + 1];
       if (nextBook) {
         userUpdates.currentBookId = nextBook.id;
         userUpdates.currentTestament = nextBook.testament;
@@ -170,13 +170,13 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
 
 /**
  * 마이페이지 '초기화'(처음부터 다시 읽기). streakDays는 유지하고 그 외 진행 상태는 전부 리셋한다.
- * - 모든 책의 bookProgress 삭제, currentBookId/currentTestament/currentChapter를 창세기 1권으로
+ * - 모든 책의 bookProgress 삭제, currentBookId/currentTestament/currentChapter를 본인의 시작 성경(roadmapStartTestament) 1권으로
  * - totalProgressPercent/overdueChapters/extraChaptersRepaid/graceDaysLeft를 가입 시 기본값(0)으로, lastReadAt/lastExtraReadAt은 null로
  * - rereadCount + 1
- * - 진행중이던 책(user.currentBookId)의 참여기록만 제거(다른 책은 실제로 함께 읽었던 기록이라 유지)
+ * - 진행중이던 책(user.currentBookId)의 참여기록만 제거(다른 책은 정상 진행 중 이미 제거됨)
  */
 export async function resetUserProgress(userId: string, user: UserDoc): Promise<void> {
-  const firstBook = [...BOOKS].sort((a, b) => a.order - b.order)[0];
+  const firstBook = getPersonalizedSequence(user.roadmapStartTestament ?? 'OT')[0];
 
   await Promise.all([deleteAllProgress(userId), removeParticipant(user.currentBookId, userId)]);
 

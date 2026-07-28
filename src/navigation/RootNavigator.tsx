@@ -5,9 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import { colors } from '../constants/theme';
 import AuthStack from './AuthStack';
 import MainTabs from './MainTabs';
+import OnboardingScreen from '../screens/onboarding/OnboardingScreen';
 
 export default function RootNavigator() {
-  const { isLoading, userId } = useAuth();
+  const { isLoading, userId, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -17,7 +18,14 @@ export default function RootNavigator() {
     );
   }
 
-  return <NavigationContainer>{userId ? <MainTabs /> : <AuthStack />}</NavigationContainer>;
+  function renderContent() {
+    if (!userId) return <AuthStack />;
+    // 온보딩 도입 전에 가입한 기존 유저는 hasOnboarded 필드가 아예 없어(undefined) 이 분기를 건너뛴다.
+    if (user && user.hasOnboarded === false) return <OnboardingScreen />;
+    return <MainTabs />;
+  }
+
+  return <NavigationContainer>{renderContent()}</NavigationContainer>;
 }
 
 const styles = StyleSheet.create({

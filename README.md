@@ -2,7 +2,7 @@
 
 교회 청년부 대상 성경 통독 습관 앱. Expo(React Native) + Firebase(Firestore/FCM) 기반.
 
-> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~7단계 (프로젝트 셋업 / 정적 데이터 시딩 / 인증 / 홈 로드맵 / 읽기 화면 / 랭킹 / 마이페이지)**.
+> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~8단계 (프로젝트 셋업 / 정적 데이터 시딩 / 인증 / 홈 로드맵 / 읽기 화면 / 랭킹 / 마이페이지 / 온보딩)**.
 
 ## 시작하기
 
@@ -77,19 +77,20 @@ src/
     reading/                 # ReadingScreen (체크리스트, 읽었어요 등)
     ranking/                 # RankingScreen (전체 진행률 랭킹)
     mypage/                  # MyPageScreen (통계/닉네임 변경/초기화/로그아웃)
+    onboarding/              # OnboardingScreen (구약/신약 시작 선택)
   components/
     roadmap/                 # TestamentDropdown, RoadmapNode, ParticipantListInline
     reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList
   context/AuthContext.tsx    # 로그인 상태, 세션 복원, refreshUser
   services/
     firebase.ts              # Firebase 초기화
-    usersService.ts          # users 컬렉션 CRUD, 랭킹 구독, 닉네임 변경
+    usersService.ts          # users 컬렉션 CRUD, 랭킹 구독, 닉네임 변경, 온보딩 완료 처리
     booksService.ts           # books 컬렉션 조회 (구약/신약 필터, id로 단건 조회)
     bookProgressService.ts    # users/{userId}/bookProgress 조회/저장/전체삭제
     participantsService.ts    # bookParticipants/{bookId}/members 조회/등록/삭제
     cheerLogsService.ts        # 화이팅 하루 1회 제한 체크 + 전송
     readingService.ts          # "읽었어요/N장 더 읽었어요" 핵심 로직 + 진행 초기화 (아래 참고)
-  data/books.ts               # 66권 정적 데이터
+  data/books.ts               # 66권 정적 데이터 + 개인화된 진행 순서 계산(getPersonalizedSequence/getDisplayOrder)
   scripts/seedBooks.ts         # books 컬렉션 시딩 스크립트 (firebase-admin)
   types/models.ts              # Firestore 데이터 모델 타입
   constants/
@@ -141,12 +142,21 @@ src/
 - **내 통계**: 전체 진행률, 연속 읽기(스트릭), 밀린 장수(읽기 화면과 동일하게 `computeLiveOverdueChapters`로 실시간 계산), 다시 읽기 횟수를 카드로 표시합니다.
 - **닉네임 변경**: 평생 `NICKNAME_CHANGE_LIMIT`(기본 3회)까지만 가능합니다. 다른 유저와 중복되면 변경할 수 없고, 횟수를 다 쓰면 입력창 자체가 비활성화됩니다.
 - **처음부터 다시 읽기(초기화)**: 확인 Alert를 거친 뒤 실행되는 되돌릴 수 없는 동작입니다.
-  - 초기화되는 것: 모든 책의 진행 기록(`bookProgress`), `currentBookId`/`currentTestament`/`currentChapter`(창세기 1장으로), 전체 진행률, 밀린 장수(`overdueChapters`/`extraChaptersRepaid`), 유예일수(`graceDaysLeft`), 마지막 읽은 시각(`lastReadAt`/`lastExtraReadAt`).
+  - 초기화되는 것: 모든 책의 진행 기록(`bookProgress`), `currentBookId`/`currentTestament`/`currentChapter`(본인이 온보딩에서 고른 시작 성경의 1번 책으로), 전체 진행률, 밀린 장수(`overdueChapters`/`extraChaptersRepaid`), 유예일수(`graceDaysLeft`), 마지막 읽은 시각(`lastReadAt`/`lastExtraReadAt`).
   - 유지되는 것: **연속 읽기(streakDays)는 초기화하지 않습니다.**
   - `rereadCount`(다시 읽기 횟수)가 1 증가합니다.
   - 진행중이던 책(`currentBookId`)의 `bookParticipants` 참여기록을 제거합니다(정상적인 진행 과정에서는 책이 넘어갈 때마다 이전 책 참여기록이 이미 제거되므로, 이 시점에 남아있는 건 현재 책뿐입니다).
 - **로그아웃**: 확인 Alert 후 세션(AsyncStorage)을 지우고 로그인 화면으로 돌아갑니다.
 
+## 온보딩 (8단계)
+
+- 회원가입 → 로그인 직후, **`hasOnboarded`가 명시적으로 `false`인 유저에게만** 표시됩니다. 온보딩 도입 전에 가입한 기존 유저는 이 필드 자체가 없어(`undefined`) 자동으로 건너뛰고 바로 홈으로 들어갑니다(진행 상황이 리셋되지 않습니다).
+- **"구약부터" / "신약부터"** 두 가지 중 하나를 고르면 끝나는 단일 화면입니다.
+  - 구약부터(기본값): 창세기(1)~말라기(39)~마태복음(40)~요한계시록(66), 정경 순서 그대로.
+  - 신약부터: 마태복음(1)~요한계시록(27)~창세기(28)~말라기(66) — 신약을 앞으로 당겨서 재배열.
+- 이 선택은 `users/{userId}`의 `roadmapStartTestament`에 저장되고, `src/data/books.ts`의 `getPersonalizedSequence`/`getDisplayOrder`가 이 값을 기준으로 **완독 시 다음 책 자동 진행 순서**와 **로드맵 노드에 표시되는 1~66 번호**를 둘 다 재배열합니다. 구약/신약 드롭다운으로 각 테스타먼트 안의 책 목록을 보는 것 자체는 그대로 유지되고, 번호만 개인화됩니다.
+- 온보딩 완료 시 `currentTestament`/`currentBookId`/`currentChapter`가 선택한 시작 성경의 1번 책으로 설정되고 `hasOnboarded: true`로 바뀝니다. 이후 다시 온보딩 화면으로 돌아오지 않습니다(변경하려면 아직 별도 기능이 없습니다).
+
 ## 다음 단계
 
-온보딩(8단계)부터 이어서 진행 예정입니다. 자세한 로드맵은 설계 문서를 참고하세요.
+Cloud Functions/푸시 알림(9단계)부터 이어서 진행 예정입니다. 자세한 로드맵은 설계 문서를 참고하세요.

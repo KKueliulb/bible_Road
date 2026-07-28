@@ -12,6 +12,7 @@ import {
   Participant,
   subscribeToParticipants,
 } from '../../services/participantsService';
+import { getDisplayOrder } from '../../data/books';
 import { BookProgressDoc, BookProgressStatus, Testament } from '../../types/models';
 import TestamentDropdown from '../../components/roadmap/TestamentDropdown';
 import RoadmapNode from '../../components/roadmap/RoadmapNode';
@@ -138,6 +139,7 @@ export default function RoadmapScreen({ navigation }: Props) {
                 book={book}
                 status={status}
                 index={index}
+                displayOrder={getDisplayOrder(book, user?.roadmapStartTestament ?? 'OT')}
                 participantCount={participantCounts[book.id] ?? 0}
                 onPress={() => handleNodePress(book, status)}
               />

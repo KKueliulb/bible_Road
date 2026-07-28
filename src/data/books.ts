@@ -1,4 +1,4 @@
-import { BookDoc } from '../types/models';
+import { BookDoc, Testament } from '../types/models';
 
 export interface BookSeed extends BookDoc {
   id: string;
@@ -76,3 +76,22 @@ export const BOOKS: BookSeed[] = [
 ];
 
 export const TOTAL_BIBLE_CHAPTERS = BOOKS.reduce((sum, book) => sum + book.totalChapters, 0);
+
+const CANONICAL_SEQUENCE = [...BOOKS].sort((a, b) => a.order - b.order);
+
+/**
+ * 온보딩에서 고른 시작 성경(구약/신약) 기준으로 완독 시 다음 책 자동 진행 순서를 재배열한다.
+ * 'OT'(기본값): 창세기(1)~말라기(39)~마태복음(40)~요한계시록(66) — 정경 순서 그대로.
+ * 'NT': 마태복음(1)~요한계시록(27)~창세기(28)~말라기(66) — 신약을 앞으로 당김.
+ */
+export function getPersonalizedSequence(startTestament: Testament): BookSeed[] {
+  if (startTestament === 'OT') return CANONICAL_SEQUENCE;
+  const nt = CANONICAL_SEQUENCE.filter((book) => book.testament === 'NT');
+  const ot = CANONICAL_SEQUENCE.filter((book) => book.testament === 'OT');
+  return [...nt, ...ot];
+}
+
+/** 로드맵 노드에 표시할, 시작 성경 기준으로 재배열된 1~66 번호. */
+export function getDisplayOrder(book: BookSeed, startTestament: Testament): number {
+  return getPersonalizedSequence(startTestament).findIndex((b) => b.id === book.id) + 1;
+}
