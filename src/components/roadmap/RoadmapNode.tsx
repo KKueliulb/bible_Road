@@ -65,7 +65,7 @@ export default function RoadmapNode({ book, status, index, displayOrder, partici
   );
 }
 
-const NODE_SIZE = 48;
+export const NODE_SIZE = 48;
 
 const styles = StyleSheet.create({
   row: {

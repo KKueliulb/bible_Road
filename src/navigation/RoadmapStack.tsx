@@ -14,7 +14,7 @@ const Stack = createNativeStackNavigator<RoadmapStackParamList>();
 export default function RoadmapStack() {
   return (
     <Stack.Navigator screenOptions={{ headerTintColor: colors.navy }}>
-      <Stack.Screen name="RoadmapHome" component={RoadmapScreen} options={{ title: '로드맵' }} />
+      <Stack.Screen name="RoadmapHome" component={RoadmapScreen} options={{ headerShown: false }} />
       <Stack.Screen
         name="Reading"
         component={ReadingScreen}

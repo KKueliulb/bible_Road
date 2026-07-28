@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RoadmapStackParamList } from '../../navigation/RoadmapStack';
 import { useAuth } from '../../context/AuthContext';
-import { Book, getBooksByTestament } from '../../services/booksService';
+import { Book, getBookById, getBooksByTestament } from '../../services/booksService';
 import { getBookProgressMap } from '../../services/bookProgressService';
 import {
   getParticipants,
@@ -12,10 +12,15 @@ import {
   Participant,
   subscribeToParticipants,
 } from '../../services/participantsService';
+import { hasReadToday } from '../../services/readingService';
 import { getDisplayOrder } from '../../data/books';
+import { DAILY_CHAPTER_GOAL } from '../../constants/readingConfig';
 import { BookProgressDoc, BookProgressStatus, Testament } from '../../types/models';
+import HomeTopBar from '../../components/roadmap/HomeTopBar';
+import TodayGoalFloatingBar from '../../components/roadmap/TodayGoalFloatingBar';
 import TestamentDropdown from '../../components/roadmap/TestamentDropdown';
 import RoadmapNode from '../../components/roadmap/RoadmapNode';
+import RoadmapConnector from '../../components/roadmap/RoadmapConnector';
 import ParticipantListInline from '../../components/roadmap/ParticipantListInline';
 import { colors, spacing, typography } from '../../constants/theme';
 
@@ -28,8 +33,21 @@ export default function RoadmapScreen({ navigation }: Props) {
   const [progressMap, setProgressMap] = useState<Record<string, BookProgressDoc>>({});
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [participantCounts, setParticipantCounts] = useState<Record<string, number>>({});
+  const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 오늘의 목표 플로팅 바는 현재 보고 있는 테스타먼트와 무관하게 항상 실제 진행중인 책을 보여줘야 한다.
+  useEffect(() => {
+    if (!user?.currentBookId) return;
+    let isCancelled = false;
+    getBookById(user.currentBookId).then((book) => {
+      if (!isCancelled) setCurrentBook(book ?? null);
+    });
+    return () => {
+      isCancelled = true;
+    };
+  }, [user?.currentBookId]);
 
   const getStatus = useCallback(
     (book: Book): BookProgressStatus => {
@@ -122,41 +140,76 @@ export default function RoadmapScreen({ navigation }: Props) {
     navigation.navigate('Reading', { bookId: book.id, bookName: book.name });
   }
 
+  const currentBookProgress = currentBook ? progressMap[currentBook.id] : undefined;
+  const currentChaptersReadCount = currentBookProgress?.chaptersRead.length ?? 0;
+  const currentBookCompleted = currentBookProgress?.status === 'completed';
+  const todayNextStart = currentChaptersReadCount + 1;
+  const todayNextEnd = currentBook
+    ? Math.min(currentChaptersReadCount + DAILY_CHAPTER_GOAL, currentBook.totalChapters)
+    : 0;
+  const readToday = hasReadToday(user?.lastReadAt ?? null);
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <TestamentDropdown value={testament} onChange={setTestament} />
+    <View style={styles.root}>
+      <HomeTopBar
+        streakDays={user?.streakDays ?? 0}
+        rereadCount={user?.rereadCount ?? 0}
+        nickname={user?.nickname ?? ''}
+      />
+      {currentBook && (
+        <TodayGoalFloatingBar
+          bookName={currentBook.name}
+          nextStart={todayNextStart}
+          nextEnd={todayNextEnd}
+          isCompleted={currentBookCompleted}
+          readToday={readToday}
+        />
+      )}
 
-      {isLoading && <ActivityIndicator color={colors.navy} style={styles.spinner} />}
-      {error && <Text style={styles.error}>{error}</Text>}
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <TestamentDropdown value={testament} onChange={setTestament} />
 
-      {!isLoading &&
-        !error &&
-        books.map((book, index) => {
-          const status = getStatus(book);
-          return (
-            <View key={book.id}>
-              <RoadmapNode
-                book={book}
-                status={status}
-                index={index}
-                displayOrder={getDisplayOrder(book, user?.roadmapStartTestament ?? 'OT')}
-                participantCount={participantCounts[book.id] ?? 0}
-                onPress={() => handleNodePress(book, status)}
-              />
-              {status === 'in_progress' && <ParticipantListInline participants={participants} />}
-            </View>
-          );
-        })}
-    </ScrollView>
+        {isLoading && <ActivityIndicator color={colors.navy} style={styles.spinner} />}
+        {error && <Text style={styles.error}>{error}</Text>}
+
+        {!isLoading &&
+          !error &&
+          books.map((book, index) => {
+            const status = getStatus(book);
+            const alignRight = index % 2 === 1;
+            return (
+              <View key={book.id}>
+                <RoadmapNode
+                  book={book}
+                  status={status}
+                  index={index}
+                  displayOrder={getDisplayOrder(book, user?.roadmapStartTestament ?? 'OT')}
+                  participantCount={participantCounts[book.id] ?? 0}
+                  onPress={() => handleNodePress(book, status)}
+                />
+                {status === 'in_progress' && (
+                  <ParticipantListInline participants={participants} alignRight={alignRight} />
+                )}
+                {index < books.length - 1 && <RoadmapConnector startRight={alignRight} />}
+              </View>
+            );
+          })}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
   },
   content: {
+    paddingTop: spacing.sm,
     paddingBottom: spacing.xxl,
   },
   spinner: {

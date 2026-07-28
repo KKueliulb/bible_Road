@@ -79,7 +79,7 @@ src/
     mypage/                  # MyPageScreen (통계/닉네임 변경/초기화/로그아웃)
     onboarding/              # OnboardingScreen (구약/신약 시작 선택)
   components/
-    roadmap/                 # TestamentDropdown, RoadmapNode, ParticipantListInline
+    roadmap/                 # HomeTopBar, TodayGoalFloatingBar, TestamentDropdown, RoadmapNode, RoadmapConnector, ParticipantListInline
     reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList
   context/AuthContext.tsx    # 로그인 상태, 세션 복원, refreshUser
   services/
@@ -102,9 +102,11 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 
 ## 홈 로드맵 (4단계)
 
-- 구약/신약 드롭다운으로 전환하면 해당 테스타먼트의 책들이 지그재그 노드로 표시됩니다.
+- **상단바(고정)**: 왼쪽 🔥 연속 읽기 일수, 가운데 📖 회독수(`rereadCount`), 오른쪽 닉네임. 네이티브 헤더(`로드맵` 타이틀) 대신 `HomeTopBar` 컴포넌트로 직접 그립니다(`RoadmapStack`에서 `RoadmapHome`은 `headerShown: false`).
+- **"오늘의 목표" 플로팅 바(고정)**: 현재 진행중인 책 기준 오늘 읽을 장수 범위를 보여주고, 오늘 "읽었어요!"를 이미 눌렀으면 체크 배지로 바뀝니다. 로드맵 목록을 스크롤해도 상단바 바로 아래 계속 고정됩니다(스크롤 영역 바깥에 배치).
+- 구약/신약 드롭다운으로 전환하면 해당 테스타먼트의 책들이 지그재그 노드로 표시되고, 노드 사이는 `react-native-svg`로 그린 대각선 점선(`RoadmapConnector`)으로 연결됩니다.
 - 노드 색상으로 완독/진행중/미시작 상태를 구분합니다. 진행 상태는 `users/{userId}/bookProgress` 문서(없으면 미시작, `currentBookId`와 같으면 진행중)로 판단합니다.
-- 진행중인 책 노드 아래에는 함께 읽는 참여자 목록이 **실시간(onSnapshot)**으로 표시됩니다.
+- 진행중인 책 노드 바로 아래에는 함께 읽는 참여자 목록이 그 노드와 같은 쪽(왼쪽/오른쪽)에 붙는 컴팩트 카드로 **실시간(onSnapshot)** 표시됩니다.
 - 모든 노드에 참여인원 수 + 전체 장수가 항상 표시됩니다(진입 가능 여부와 무관).
 - **미시작(not_started) 상태인 책은 눌러도 들어갈 수 없습니다** — 안내 메시지만 뜨고 읽기 화면으로 이동하지 않습니다. 진행중/완독 상태인 책만 진입 가능합니다.
 - 진입 가능한 노드를 누르면 `bookParticipants/{bookId}/members/{userId}`에 자동으로 참여 등록되고, 읽기 화면으로 이동합니다.
@@ -169,6 +171,8 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
   - `colors`에 `navyLight`/`orangeLight`/`surface`/`dangerLight`/`success`/`successLight` 등 보조 톤을 추가해 기존에 각 파일마다 따로 적던 `#FFF1E6` 같은 하드코딩 색을 정리했습니다.
   - `typography`에 `h1`/`h2`/`h3`/`body`/`bodyBold`/`caption`/`captionBold`/`small`/`smallBold` 프리셋을 만들어 폰트 패밀리+크기를 한 번에 지정합니다.
 - **화면별 반영**: 로그인/회원가입/온보딩, 홈 로드맵(진행중 노드에 그림자 강조, 상태 라벨 색상화), 읽기 화면(밀린 장수 있을 때 빨간색/없을 때 초록색, 읽었어요 버튼에 그림자), 랭킹(상위 3명 메달 이모지), 마이페이지(닉네임 이니셜 아바타)까지 전체 화면에 위 토큰을 적용했습니다.
+- **하단 탭바 아이콘화**: 텍스트 라벨 대신 `@expo/vector-icons`의 Ionicons만 사용(랭킹=podium, 홈=home, 마이페이지=person, 선택 시 filled/미선택 시 outline). 전체 아이콘 폰트를 다 번들에 넣지 않도록 `@expo/vector-icons/Ionicons`처럼 서브패스로 직접 import해서 실제 쓰는 아이콘 세트만 포함시켰습니다.
+- 홈 로드맵의 상단바/오늘의 목표 플로팅 바/노드 연결 점선은 위 "홈 로드맵" 섹션을 참고하세요.
 
 ## 다음 단계
 
