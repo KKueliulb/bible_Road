@@ -21,7 +21,10 @@ export interface UserDoc {
   streakDays: number;
   lastReadAt: number | null;
   lastExtraReadAt: number | null;
+  /** "읽었어요!"에서 공백(밀린 날)이 확정될 때만 누적되는 원금. "N장 더 읽었어요!"로는 줄지 않는다. */
   overdueChapters: number;
+  /** "N장 더 읽었어요!"로 지금까지 상환한 누적 장수. 밀린 장수 표시 시 이 값만큼 차감한다. */
+  extraChaptersRepaid: number;
   graceDaysLeft: number;
   rereadCount: number;
   fcmToken: string | null;

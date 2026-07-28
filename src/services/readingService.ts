@@ -20,19 +20,32 @@ export function hasReadToday(lastReadAt: number | null): boolean {
 }
 
 /**
- * 밀린 장수 = max(0, 가입일 이후 "완전히 지난 날" 수 * DAILY_CHAPTER_GOAL - 전체 읽은 장수).
- * 가입 당일은 아직 하루가 안 지났으므로 항상 0(오늘 목표를 아직 안 채웠다고 밀린 걸로 치지 않음).
- * 저장된 값을 그대로 믿지 않고, 화면을 보여줄 때마다 이 함수로 그 자리에서 다시 계산해야 한다 —
- * 그렇지 않으면 아무 액션 없이 며칠이 지나도 화면에는 예전 값이 그대로 보이는 문제가 생긴다.
+ * 아직 "읽었어요!"로 확정(lock-in)되지 않은, 진행중인 공백 일수.
+ * lastReadAt이 있으면 그 다음날까지는 정상(연속)이라 -1 보정, 없으면(한 번도 안 읽음) 가입일 자체가 이미 유예라 보정 없음.
  */
-export function computeOverdueChapters(
-  createdAt: number,
-  totalChaptersRead: number,
+function ongoingGapMissedDays(lastReadAt: number | null, createdAt: number, now: number): number {
+  if (lastReadAt === null) {
+    return Math.max(0, diffCalendarDays(createdAt, now));
+  }
+  return Math.max(0, diffCalendarDays(lastReadAt, now) - 1);
+}
+
+/**
+ * 밀린 장수 = 원금(overdueChapters, "읽었어요!"가 공백을 확정할 때만 누적)
+ *           + 아직 확정 안 된 진행중 공백(실시간 계산)
+ *           - N장 더 읽었어요로 상환한 누적 장수(extraChaptersRepaid).
+ *
+ * "읽었어요!"는 원금을 절대 깎지 않고(그 자리에서 공백을 새로 확정할 때만 "늘릴" 수 있음),
+ * "N장 더 읽었어요!"는 상환액만 늘려서 이 합계를 줄인다 — 그래서 "읽었어요"를 눌러도 이 숫자는 안 바뀐다.
+ * 화면을 열 때마다 이 함수로 그 자리에서 다시 계산해야 한다(저장된 값만 보면 액션 없이는 안 늘어난 것처럼 보임).
+ */
+export function computeLiveOverdueChapters(
+  user: Pick<UserDoc, 'overdueChapters' | 'lastReadAt' | 'createdAt' | 'extraChaptersRepaid'>,
   now: number = Date.now()
 ): number {
-  const daysFullyElapsed = diffCalendarDays(createdAt, now);
-  const expectedByYesterday = daysFullyElapsed * DAILY_CHAPTER_GOAL;
-  return Math.max(0, expectedByYesterday - totalChaptersRead);
+  const ongoingGapChapters = ongoingGapMissedDays(user.lastReadAt, user.createdAt, now) * DAILY_CHAPTER_GOAL;
+  const repaid = user.extraChaptersRepaid ?? 0;
+  return Math.max(0, user.overdueChapters + ongoingGapChapters - repaid);
 }
 
 interface RecordReadingParams {
@@ -43,7 +56,7 @@ interface RecordReadingParams {
   chapterCount: number;
   /** 'base' = "읽었어요!"(오늘 목표, 하루 1회, 스트릭 갱신), 'extra' = "N장 더 읽었어요!"(밀린 장 catch-up, 하루 1회, 스트릭 무관) */
   actionType: 'base' | 'extra';
-  /** 이 책을 제외한, 지금까지 읽은 다른 모든 책의 장수 합 (진척도/밀린 장수 재계산용) */
+  /** 이 책을 제외한, 지금까지 읽은 다른 모든 책의 장수 합 (진척도 재계산용) */
   otherBooksChaptersReadTotal: number;
 }
 
@@ -55,8 +68,9 @@ interface RecordReadingResult {
 /**
  * "읽었어요!" / "N장 더 읽었어요!" 공용 로직.
  * 설계문서에 스트릭/유예/밀린 장수의 정확한 계산식이 없어 아래 규칙으로 구현함(추후 9단계 Cloud Functions에서 보완 가능):
- * - streakDays/lastReadAt/graceDaysLeft는 'base' 액션에서만 갱신된다(책 단위가 아니라 유저 전역 기준).
- * - lastExtraReadAt은 'extra' 액션 전용 — "읽었어요"를 눌렀다고 "N장 더 읽었어요"가 하루치 다 쓴 걸로 처리되지 않는다.
+ * - streakDays/lastReadAt/graceDaysLeft/overdueChapters(원금)는 'base' 액션에서만 갱신된다(유저 전역 기준).
+ * - lastExtraReadAt/extraChaptersRepaid는 'extra' 액션 전용 — "읽었어요"를 눌렀다고 "N장 더 읽었어요"가
+ *   하루치 다 쓴 걸로 처리되지도, 밀린 장수가 줄어들지도 않는다.
  * - 책을 완독하면 그 책이 currentBookId였을 때만 다음 책으로 자동 이동(그렇지 않으면 로드맵에서 다음 책이 영원히 잠겨 있게 됨)
  */
 export async function recordChaptersRead(params: RecordReadingParams): Promise<RecordReadingResult> {
@@ -86,27 +100,31 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
   const userUpdates: Partial<UserDoc> = {};
 
   if (actionType === 'base' && !hasReadToday(user.lastReadAt)) {
+    const missedDays = ongoingGapMissedDays(user.lastReadAt, user.createdAt, now);
+
     let streakDays: number;
     let graceDaysLeft: number;
 
     if (user.lastReadAt === null) {
       streakDays = 1;
       graceDaysLeft = 2;
+    } else if (missedDays <= 0) {
+      // 어제 읽고 오늘도 읽음 - 연속 기록, 유예 서서히 회복
+      streakDays = user.streakDays + 1;
+      graceDaysLeft = Math.min(2, user.graceDaysLeft + 1);
+    } else if (user.graceDaysLeft >= missedDays) {
+      // 며칠 건너뛰었지만 유예로 커버 가능
+      streakDays = user.streakDays + 1;
+      graceDaysLeft = user.graceDaysLeft - missedDays;
     } else {
-      const missedDays = diffCalendarDays(user.lastReadAt, now) - 1;
-      if (missedDays <= 0) {
-        // 어제 읽고 오늘도 읽음 - 연속 기록, 유예 서서히 회복
-        streakDays = user.streakDays + 1;
-        graceDaysLeft = Math.min(2, user.graceDaysLeft + 1);
-      } else if (user.graceDaysLeft >= missedDays) {
-        // 며칠 건너뛰었지만 유예로 커버 가능
-        streakDays = user.streakDays + 1;
-        graceDaysLeft = user.graceDaysLeft - missedDays;
-      } else {
-        // 유예 초과 - 스트릭 리셋
-        streakDays = 1;
-        graceDaysLeft = 2;
-      }
+      // 유예 초과 - 스트릭 리셋
+      streakDays = 1;
+      graceDaysLeft = 2;
+    }
+
+    // 지금까지 확정 안 됐던 공백을 원금에 확정 반영 (이후로는 이 값이 실시간 계산의 기준이 됨)
+    if (missedDays > 0) {
+      userUpdates.overdueChapters = user.overdueChapters + missedDays * DAILY_CHAPTER_GOAL;
     }
 
     userUpdates.lastReadAt = now;
@@ -116,11 +134,11 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
 
   if (actionType === 'extra') {
     userUpdates.lastExtraReadAt = now;
+    userUpdates.extraChaptersRepaid = (user.extraChaptersRepaid ?? 0) + chaptersToAdd.length;
   }
 
   const totalChaptersRead = otherBooksChaptersReadTotal + newChaptersRead.length;
   userUpdates.totalProgressPercent = Math.round((totalChaptersRead / TOTAL_BIBLE_CHAPTERS) * 1000) / 10;
-  userUpdates.overdueChapters = computeOverdueChapters(user.createdAt, totalChaptersRead, now);
 
   if (user.currentBookId === book.id) {
     if (status === 'completed') {

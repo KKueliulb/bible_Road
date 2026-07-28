@@ -10,8 +10,9 @@ const TWO_DAYS_MS = 2 * 86400000;
  * 24시간을 실제로 기다리지 않고도 "며칠 안 읽어서 밀린 장수가 생긴" 상태를
  * 강제로 만들어보는 개발용 버튼. __DEV__는 production 빌드에서 false라 자동으로 숨겨진다.
  *
- * 밀린 장수는 createdAt(가입일) 기준으로 화면에서 실시간 계산되므로, createdAt을
- * 과거로 밀어서 시뮬레이션한다. 여러 번 누르면 그만큼 더 밀린 것으로 누적된다.
+ * 밀린 장수(실시간 부분)는 lastReadAt 기준으로 계산되므로, lastReadAt을 과거로 밀어서
+ * 시뮬레이션한다(한 번도 안 읽었으면 지금 시각 기준으로 새로 만듦). 여러 번 누르면 그만큼 더
+ * 밀린 것으로 누적된다. createdAt은 lastReadAt이 한 번이라도 설정되면 계산에 쓰이지 않는다.
  */
 export default function DevOverdueSimulatorButton() {
   const { userId, user, refreshUser } = useAuth();
@@ -23,9 +24,9 @@ export default function DevOverdueSimulatorButton() {
     if (!userId || !user) return;
     setIsSubmitting(true);
     try {
+      const baseline = user.lastReadAt ?? Date.now();
       await updateUser(userId, {
-        createdAt: user.createdAt - TWO_DAYS_MS,
-        lastReadAt: user.lastReadAt !== null ? user.lastReadAt - TWO_DAYS_MS : Date.now() - TWO_DAYS_MS,
+        lastReadAt: baseline - TWO_DAYS_MS,
         lastExtraReadAt: null,
         graceDaysLeft: Math.max(0, user.graceDaysLeft - 1),
       });

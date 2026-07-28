@@ -7,7 +7,7 @@ import { Book, getBookById } from '../../services/booksService';
 import { getBookProgressMap } from '../../services/bookProgressService';
 import { Participant, subscribeToParticipants } from '../../services/participantsService';
 import { hasCheeredToday, sendCheer } from '../../services/cheerLogsService';
-import { computeOverdueChapters, hasReadToday, recordChaptersRead } from '../../services/readingService';
+import { computeLiveOverdueChapters, hasReadToday, recordChaptersRead } from '../../services/readingService';
 import { BookProgressDoc } from '../../types/models';
 import { DAILY_CHAPTER_GOAL } from '../../constants/readingConfig';
 import TodayGoalCard from '../../components/reading/TodayGoalCard';
@@ -113,10 +113,9 @@ export default function ReadingScreen({ route }: Props) {
       .reduce((sum, [, p]) => sum + p.chaptersRead.length, 0);
   }
 
-  // 저장된 user.overdueChapters는 마지막 읽기 액션 시점의 스냅샷이라, 아무 액션 없이
-  // 며칠이 지나도 갱신되지 않는다. 화면을 볼 때마다 그 자리에서 다시 계산한다.
-  const totalChaptersReadNow = otherBooksTotal() + chaptersReadCount;
-  const liveOverdueChapters = computeOverdueChapters(user.createdAt, totalChaptersReadNow);
+  // 원금(공백 확정분) + 진행중 미확정 공백 - 상환액을 화면을 볼 때마다 그 자리에서 다시 계산한다.
+  // "읽었어요!"는 이 값을 바꾸지 않고, "N장 더 읽었어요!"로 상환해야만 줄어든다.
+  const liveOverdueChapters = computeLiveOverdueChapters(user);
   const extraAvailable = Math.min(liveOverdueChapters, remaining);
 
   async function handleRead() {
