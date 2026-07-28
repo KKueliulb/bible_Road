@@ -93,7 +93,7 @@ src/
     bookProgressService.ts    # users/{userId}/bookProgress 조회/저장/전체삭제
     participantsService.ts    # bookParticipants/{bookId}/members 조회/등록/삭제
     cheerLogsService.ts        # 화이팅 하루 1회 제한 체크 + 전송
-    readingService.ts          # "읽었어요/N장 더 읽었어요" 핵심 로직 + 진행 초기화 (아래 참고)
+    readingService.ts          # "읽었어요/N장 더 읽었어요" 핵심 로직 + 66권 완독 시 자동 회독 처리 (아래 참고)
   data/books.ts               # 66권 정적 데이터 + 개인화된 진행 순서 계산(getPersonalizedSequence)
   scripts/
     seedBooks.ts               # books 컬렉션 시딩 스크립트 (firebase-admin)
@@ -130,6 +130,8 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
   - **읽었어요!**: 오늘 아직 안 눌렀으면 활성화. 누르면 `DAILY_CHAPTER_GOAL`만큼 진행 + 스트릭 갱신(`user.lastReadAt` 기준).
   - **N장 더 읽었어요!**: **밀린 장수(overdueChapters)가 0보다 클 때만** 아예 나타나는 별도 버튼입니다(0이면 버튼 자체가 안 보임). 가입 첫날에는 밀린 게 없으니 뜨지 않습니다. 오늘 아직 안 썼으면 활성화되고, 하루에 한 번만 쓸 수 있습니다(`user.lastExtraReadAt` 기준, 스트릭과는 무관). 선택 가능한 장수는 1장부터 `min(밀린 장수, 책에 남은 장수)`까지 전부 고를 수 있습니다(짝수 포함).
 - **스트릭/유예(streakDays/graceDaysLeft)**: 책 단위가 아니라 유저 전역 기준이고, **"읽었어요!"에서만** 갱신됩니다("N장 더 읽었어요!"는 밀린 걸 갚는 것뿐이라 스트릭에 영향 없음). 어제 이어서 읽으면 연속 기록 +1, 하루 이상 건너뛰면 남은 유예일로 커버를 시도하고, 유예를 초과하면 스트릭이 1로 리셋됩니다. 9단계(Cloud Functions)에서 매일 자정 서버 로직으로 보완할 예정이라, 지금은 "읽었어요"를 누르는 시점에만 클라이언트에서 계산합니다.
+  - 가입 직후(`graceDaysLeft` 기본값 2, `overdueChapters` 0)는 첫 "읽었어요!" 이후와 동일한 상태라, **가입 첫날에는 아래 스트릭 경고 배너가 뜨지 않습니다.**
+- **스트릭 경고 배너(`StreakWarningBanner`)**: 유예일이 2일 미만이거나 밀린 장수가 있으면 읽기 화면 상단에 `🔥 끊어진 불꽃을 다시 태울 수 있는 기회! {n}일 남았습니다!`(유예 소진 시에는 `오늘까지입니다!`)를 표시합니다.
 - **밀린 장수 계산 (`computeLiveOverdueChapters`)**: 세 요소를 더해서 화면을 열 때마다 그 자리에서 다시 계산합니다.
   1. **원금(`overdueChapters`)**: "읽었어요!"를 눌렀는데 그 사이에 공백(안 읽은 날)이 있었으면, 그 공백만큼만 그 순간에 확정되어 누적됩니다. **"읽었어요!"를 눌러도 공백이 없었다면(연속으로 읽는 정상 케이스) 원금은 절대 안 바뀝니다.**
   2. **진행중인 미확정 공백**: 마지막으로 "읽었어요!"를 누른 날(또는 한 번도 안 눌렀으면 가입일) 이후 아직 확정 안 된 공백을 실시간으로 계산해 더합니다 — 그래서 액션 없이 며칠이 지나도 화면엔 정확히 늘어난 값이 보입니다.
@@ -162,16 +164,25 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 
 ## 마이페이지 (7단계)
 
-- **프로필 사진**: 아바타를 누르면 갤러리에서 사진을 골라(`expo-image-picker`) Firebase Storage(`profilePhotos/{userId}.jpg`)에 업로드하고 `users/{userId}.photoURL`에 저장합니다. 사진이 없으면 닉네임 첫 글자 아바타가 대신 표시됩니다(랭킹 화면도 동일).
+- **프로필 사진**: 아바타를 누르면 갤러리에서 사진을 골라(`expo-image-picker`) Firebase Storage(`profilePhotos/{userId}.jpg`)에 업로드하고 `users/{userId}.photoURL`에 저장합니다. 사진이 없으면(또는 로드에 실패하면) 닉네임 첫 글자 아바타가 대신 표시됩니다(랭킹 화면도 동일).
   - 로컬 이미지를 Blob으로 변환할 때 React Native의 `fetch(uri).blob()`은 종종 깨지거나 빈 Blob을 만들어(권한 허용과 업로드 자체는 되지만 사진이 실제로는 바뀌지 않는 것처럼 보이는 원인) Firebase가 RN 환경에 공식 권장하는 `XMLHttpRequest` 기반 변환 방식으로 교체했습니다(`profilePhotoService.ts`).
-- **내 통계**: 전체 진행률, 연속 읽기(스트릭), 밀린 장수(읽기 화면과 동일하게 `computeLiveOverdueChapters`로 실시간 계산), 다시 읽기 횟수를 카드로 표시합니다.
+  - 같은 경로(`profilePhotos/{userId}.jpg`)에 덮어써서 다운로드 URL 문자열이 이전과 동일해질 수 있는 경우를 대비해, 매번 값이 달라지는 쿼리 파라미터(`&_v=타임스탬프`)를 붙여 반환합니다 — RN `<Image>`가 이전 사진을 캐시로 계속 보여주는 것을 방지합니다.
+  - `Avatar` 컴포넌트는 이미지 로드가 실패하면(`onError`) 자동으로 닉네임 이니셜로 폴백하고, `photoURL`이 바뀌면 이전 실패 상태를 지우고 다시 시도합니다.
+  - 업로드 실패 시 실제 오류 메시지를 화면에 함께 보여주도록 바꿨습니다(콘솔에도 `console.error`로 남깁니다) — 원인 파악용입니다. Storage를 아직 콘솔에서 생성하지 않았거나 보안 규칙이 막고 있으면 이 메시지로 확인할 수 있습니다.
+- **내 통계**: 전체 진행률, 연속 읽기(스트릭), 밀린 장수(읽기 화면과 동일하게 `computeLiveOverdueChapters`로 실시간 계산), **회독**(`rereadCount`, 예전 "다시 읽기" 칸에서 이름만 변경)을 카드로 표시합니다.
 - **닉네임 변경**: 평생 `NICKNAME_CHANGE_LIMIT`(기본 3회)까지만 가능합니다. 다른 유저와 중복되면 변경할 수 없고, 횟수를 다 쓰면 입력창 자체가 비활성화됩니다.
-- **처음부터 다시 읽기(초기화)**: 확인 Alert를 거친 뒤 실행되는 되돌릴 수 없는 동작입니다.
-  - 초기화되는 것: 모든 책의 진행 기록(`bookProgress`), `currentBookId`/`currentTestament`/`currentChapter`(본인이 온보딩에서 고른 시작 성경의 1번 책으로), 전체 진행률, 밀린 장수(`overdueChapters`/`extraChaptersRepaid`), 유예일수(`graceDaysLeft`), 마지막 읽은 시각(`lastReadAt`/`lastExtraReadAt`).
-  - 유지되는 것: **연속 읽기(streakDays)는 초기화하지 않습니다.**
-  - `rereadCount`(다시 읽기 횟수)가 1 증가합니다.
-  - 진행중이던 책(`currentBookId`)의 `bookParticipants` 참여기록을 제거합니다(정상적인 진행 과정에서는 책이 넘어갈 때마다 이전 책 참여기록이 이미 제거되므로, 이 시점에 남아있는 건 현재 책뿐입니다).
 - **로그아웃**: 확인 Alert 후 세션(AsyncStorage)을 지우고 로그인 화면으로 돌아갑니다.
+- ~~처음부터 다시 읽기(수동 초기화) 버튼~~은 없앴습니다. 아래 "회독(다시 읽기) 자동화"를 참고하세요.
+
+### 회독(다시 읽기) 자동화
+
+- 수동 초기화 버튼 대신, **66권 로드맵 노드가 모두 완독으로 바뀌는 순간**(마지막 책까지 다 읽고 "읽었어요!"/"N장 더 읽었어요!"를 누른 시점) `recordChaptersRead`가 자동으로 다음을 처리합니다(`readingService.ts`).
+  - 초기화되는 것: 모든 책의 진행 기록(`bookProgress`), `currentBookId`/`currentTestament`/`currentChapter`(본인이 온보딩에서 고른 시작 성경의 1번 책으로), 전체 진행률, 밀린 장수(`overdueChapters`/`extraChaptersRepaid`), 유예일수(`graceDaysLeft`는 2로).
+  - 유지되는 것: **연속 읽기(streakDays)와 마지막 읽은 시각(lastReadAt)은 그대로 둡니다** — 같은 액션 안에서 스트릭이 정상적으로 갱신된 뒤에 초기화가 이어지므로, 다음 회독 1일차도 "어제 이어서 읽은" 것으로 자연스럽게 이어집니다.
+  - `rereadCount`(회독수)가 1 증가합니다.
+  - 방금 완독한 마지막 책의 `bookParticipants` 참여기록을 제거하고, 새로 시작하는 1번 책에 자동으로 참여 등록합니다(다른 책 전환 때와 동일하게 실시간 반영).
+
+> 이전 초기화 로직은 `lastReadAt`을 `null`로 되돌려서, "스트릭은 유지된다"고 안내했음에도 바로 다음 "읽었어요!"에서 스트릭이 1로 리셋되는 숨은 버그가 있었습니다. 이번에 자동화하면서 `lastReadAt`을 건드리지 않도록 고쳐 실제로 스트릭이 이어지게 했습니다.
 
 ## 온보딩 (8단계)
 

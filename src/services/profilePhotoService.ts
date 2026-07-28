@@ -21,5 +21,9 @@ export async function uploadProfilePhoto(userId: string, localUri: string): Prom
 
   const photoRef = ref(storage, `profilePhotos/${userId}.jpg`);
   await uploadBytes(photoRef, blob);
-  return getDownloadURL(photoRef);
+  const downloadURL = await getDownloadURL(photoRef);
+
+  // 같은 경로에 덮어쓰면 다운로드 URL이 이전과 같을 수 있어, RN의 <Image> 캐시가 예전 사진을 계속
+  // 보여줄 수 있다. 매번 값이 달라지는 쿼리 파라미터를 붙여 항상 새로 불러오게 만든다.
+  return `${downloadURL}&_v=${Date.now()}`;
 }

@@ -12,10 +12,8 @@ export default function StreakWarningBanner({ graceDaysLeft, overdueChapters }: 
     return null;
   }
 
-  const message =
-    graceDaysLeft <= 0
-      ? '유예 기간을 모두 사용했어요. 오늘 읽지 않으면 연속 기록이 끊겨요!'
-      : `스트릭 유예 ${graceDaysLeft}일 남았어요. 꾸준히 읽어서 기록을 지켜보세요.`;
+  const daysText = graceDaysLeft <= 0 ? '오늘까지입니다!' : `${graceDaysLeft}일 남았습니다!`;
+  const message = `🔥 끊어진 불꽃을 다시 태울 수 있는 기회! ${daysText}`;
 
   return (
     <View style={styles.banner}>

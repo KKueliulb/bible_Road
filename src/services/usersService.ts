@@ -53,7 +53,9 @@ export async function createUser(name: string, nickname: string): Promise<{ id: 
     lastExtraReadAt: null,
     overdueChapters: 0,
     extraChaptersRepaid: 0,
-    graceDaysLeft: 0,
+    // 가입 첫날(아직 한 번도 안 읽은 상태)에 스트릭 경고 배너가 뜨지 않도록, 첫 "읽었어요!" 이후와
+    // 동일한 기본 유예일수(2일)로 시작한다.
+    graceDaysLeft: 2,
     rereadCount: 0,
     roadmapStartTestament: 'OT',
     hasOnboarded: false,

@@ -174,8 +174,24 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
           removeParticipant(book.id, userId),
           joinBookParticipants(nextBook.id, userId, user.nickname),
         ]);
+      } else {
+        // 66권 전체 완독 - 연속 스트릭(streakDays/lastReadAt)만 남기고 나머지 진행 상황을 전부 초기화한
+        // 뒤 자동으로 다음 회독을 시작하고 회독수(rereadCount)를 올린다.
+        const firstBook = sequence[0];
+        userUpdates.currentBookId = firstBook.id;
+        userUpdates.currentTestament = firstBook.testament;
+        userUpdates.currentChapter = 0;
+        userUpdates.totalProgressPercent = 0;
+        userUpdates.overdueChapters = 0;
+        userUpdates.extraChaptersRepaid = 0;
+        userUpdates.graceDaysLeft = 2;
+        userUpdates.rereadCount = user.rereadCount + 1;
+        await Promise.all([
+          removeParticipant(book.id, userId),
+          deleteAllProgress(userId),
+          joinBookParticipants(firstBook.id, userId, user.nickname),
+        ]);
       }
-      // 66권 전체 완독(다음 책 없음)은 9단계(onFullBibleCompleted) 범위라 여기서는 그대로 둔다.
     } else {
       userUpdates.currentChapter = newChaptersRead.length;
     }
@@ -184,30 +200,4 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
   await updateUser(userId, userUpdates);
 
   return { progress, userUpdates };
-}
-
-/**
- * 마이페이지 '초기화'(처음부터 다시 읽기). streakDays는 유지하고 그 외 진행 상태는 전부 리셋한다.
- * - 모든 책의 bookProgress 삭제, currentBookId/currentTestament/currentChapter를 본인의 시작 성경(roadmapStartTestament) 1권으로
- * - totalProgressPercent/overdueChapters/extraChaptersRepaid/graceDaysLeft를 가입 시 기본값(0)으로, lastReadAt/lastExtraReadAt은 null로
- * - rereadCount + 1
- * - 진행중이던 책(user.currentBookId)의 참여기록만 제거(다른 책은 정상 진행 중 이미 제거됨)
- */
-export async function resetUserProgress(userId: string, user: UserDoc): Promise<void> {
-  const firstBook = getPersonalizedSequence(user.roadmapStartTestament ?? 'OT')[0];
-
-  await Promise.all([deleteAllProgress(userId), removeParticipant(user.currentBookId, userId)]);
-
-  await updateUser(userId, {
-    currentTestament: firstBook.testament,
-    currentBookId: firstBook.id,
-    currentChapter: 0,
-    totalProgressPercent: 0,
-    lastReadAt: null,
-    lastExtraReadAt: null,
-    overdueChapters: 0,
-    extraChaptersRepaid: 0,
-    graceDaysLeft: 0,
-    rereadCount: user.rereadCount + 1,
-  });
 }

@@ -13,7 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { changeNickname, updateUser } from '../../services/usersService';
 import { uploadProfilePhoto } from '../../services/profilePhotoService';
-import { computeLiveOverdueChapters, resetUserProgress } from '../../services/readingService';
+import { computeLiveOverdueChapters } from '../../services/readingService';
 import { NICKNAME_CHANGE_LIMIT } from '../../constants/profileConfig';
 import Avatar from '../../components/common/Avatar';
 import { colors, radius, spacing, typography } from '../../constants/theme';
@@ -24,7 +24,6 @@ export default function MyPageScreen() {
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [nicknameSuccess, setNicknameSuccess] = useState(false);
   const [isChangingNickname, setIsChangingNickname] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
   const [isChangingPhoto, setIsChangingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
 
@@ -58,8 +57,10 @@ export default function MyPageScreen() {
       const photoURL = await uploadProfilePhoto(userId, result.assets[0].uri);
       await updateUser(userId, { photoURL });
       await refreshUser();
-    } catch {
-      setPhotoError('프로필 사진 업로드에 실패했어요.');
+    } catch (error) {
+      console.error('프로필 사진 업로드 실패:', error);
+      const detail = error instanceof Error ? error.message : String(error);
+      setPhotoError(`프로필 사진 업로드에 실패했어요. (${detail})`);
     } finally {
       setIsChangingPhoto(false);
     }
@@ -84,32 +85,6 @@ export default function MyPageScreen() {
     } finally {
       setIsChangingNickname(false);
     }
-  }
-
-  function handleReset() {
-    Alert.alert(
-      '처음부터 다시 읽기',
-      '스트릭을 제외한 모든 진행 상황(진행률, 밀린 장수, 읽고 있던 책)이 초기화돼요. 계속할까요?',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '초기화',
-          style: 'destructive',
-          onPress: async () => {
-            if (!userId || !user) return;
-            setIsResetting(true);
-            try {
-              await resetUserProgress(userId, user);
-              await refreshUser();
-            } catch {
-              Alert.alert('초기화에 실패했어요. 다시 시도해주세요.');
-            } finally {
-              setIsResetting(false);
-            }
-          },
-        },
-      ]
-    );
   }
 
   function handleLogout() {
@@ -149,7 +124,7 @@ export default function MyPageScreen() {
           <Text style={styles.statValue}>{liveOverdueChapters}장</Text>
         </View>
         <View style={[styles.statRow, styles.statRowLast]}>
-          <Text style={styles.statLabel}>다시 읽기</Text>
+          <Text style={styles.statLabel}>회독</Text>
           <Text style={styles.statValue}>{user.rereadCount}회</Text>
         </View>
       </View>
@@ -186,18 +161,6 @@ export default function MyPageScreen() {
       </View>
       {nicknameError && <Text style={styles.error}>{nicknameError}</Text>}
       {nicknameSuccess && <Text style={styles.success}>닉네임이 변경됐어요.</Text>}
-
-      <Pressable
-        style={[styles.dangerButton, isResetting && styles.buttonDisabled]}
-        onPress={handleReset}
-        disabled={isResetting}
-      >
-        {isResetting ? (
-          <ActivityIndicator color={colors.danger} />
-        ) : (
-          <Text style={styles.dangerButtonText}>처음부터 다시 읽기 (초기화)</Text>
-        )}
-      </Pressable>
 
       <Pressable style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutButtonText}>로그아웃</Text>
@@ -330,21 +293,9 @@ const styles = StyleSheet.create({
     color: colors.success,
     marginTop: spacing.sm - 2,
   },
-  dangerButton: {
-    borderWidth: 1,
-    borderColor: colors.danger,
-    borderRadius: radius.md,
-    paddingVertical: spacing.lg - 2,
-    alignItems: 'center',
-    marginTop: spacing.xxl,
-  },
-  dangerButtonText: {
-    ...typography.bodyBold,
-    color: colors.danger,
-  },
   logoutButton: {
     alignItems: 'center',
-    marginTop: spacing.lg,
+    marginTop: spacing.xxl,
     paddingVertical: spacing.md,
   },
   logoutButtonText: {
