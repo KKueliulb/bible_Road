@@ -13,6 +13,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../constants/theme';
 import { AuthStackParamList } from '../../navigation/AuthStack';
+import DevQuickLoginButton from '../../components/dev/DevQuickLoginButton';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
 
@@ -81,6 +82,8 @@ export default function SignupScreen({ navigation }: Props) {
       <Pressable onPress={() => navigation.navigate('Login')} style={styles.linkButton}>
         <Text style={styles.linkText}>이미 계정이 있으신가요? 로그인</Text>
       </Pressable>
+
+      <DevQuickLoginButton />
     </KeyboardAvoidingView>
   );
 }
