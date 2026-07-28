@@ -19,13 +19,31 @@ export function hasReadToday(lastReadAt: number | null): boolean {
   return diffCalendarDays(lastReadAt, Date.now()) === 0;
 }
 
+/**
+ * 밀린 장수 = max(0, 가입일 이후 "완전히 지난 날" 수 * DAILY_CHAPTER_GOAL - 전체 읽은 장수).
+ * 가입 당일은 아직 하루가 안 지났으므로 항상 0(오늘 목표를 아직 안 채웠다고 밀린 걸로 치지 않음).
+ * 저장된 값을 그대로 믿지 않고, 화면을 보여줄 때마다 이 함수로 그 자리에서 다시 계산해야 한다 —
+ * 그렇지 않으면 아무 액션 없이 며칠이 지나도 화면에는 예전 값이 그대로 보이는 문제가 생긴다.
+ */
+export function computeOverdueChapters(
+  createdAt: number,
+  totalChaptersRead: number,
+  now: number = Date.now()
+): number {
+  const daysFullyElapsed = diffCalendarDays(createdAt, now);
+  const expectedByYesterday = daysFullyElapsed * DAILY_CHAPTER_GOAL;
+  return Math.max(0, expectedByYesterday - totalChaptersRead);
+}
+
 interface RecordReadingParams {
   userId: string;
   user: UserDoc;
   book: Book;
   existingProgress: BookProgressDoc | null;
   chapterCount: number;
-  /** 이 책을 제외한, 지금까지 읽은 다른 모든 책의 장수 합 (진척도 재계산용) */
+  /** 'base' = "읽었어요!"(오늘 목표, 하루 1회, 스트릭 갱신), 'extra' = "N장 더 읽었어요!"(밀린 장 catch-up, 하루 1회, 스트릭 무관) */
+  actionType: 'base' | 'extra';
+  /** 이 책을 제외한, 지금까지 읽은 다른 모든 책의 장수 합 (진척도/밀린 장수 재계산용) */
   otherBooksChaptersReadTotal: number;
 }
 
@@ -37,13 +55,12 @@ interface RecordReadingResult {
 /**
  * "읽었어요!" / "N장 더 읽었어요!" 공용 로직.
  * 설계문서에 스트릭/유예/밀린 장수의 정확한 계산식이 없어 아래 규칙으로 구현함(추후 9단계 Cloud Functions에서 보완 가능):
- * - streakDays/lastReadAt/graceDaysLeft는 책 단위가 아니라 유저 전역 기준(오늘 아무 책이나 하나만 읽어도 인정)
- * - overdueChapters = max(0, 가입일 이후 "완전히 지난 날" 수 * DAILY_CHAPTER_GOAL - 전체 읽은 장수)
- *   (가입 당일은 아직 하루가 안 지났으므로 항상 0 — 오늘 목표를 아직 안 채웠다고 밀린 걸로 치지 않음)
+ * - streakDays/lastReadAt/graceDaysLeft는 'base' 액션에서만 갱신된다(책 단위가 아니라 유저 전역 기준).
+ * - lastExtraReadAt은 'extra' 액션 전용 — "읽었어요"를 눌렀다고 "N장 더 읽었어요"가 하루치 다 쓴 걸로 처리되지 않는다.
  * - 책을 완독하면 그 책이 currentBookId였을 때만 다음 책으로 자동 이동(그렇지 않으면 로드맵에서 다음 책이 영원히 잠겨 있게 됨)
  */
 export async function recordChaptersRead(params: RecordReadingParams): Promise<RecordReadingResult> {
-  const { userId, user, book, existingProgress, chapterCount, otherBooksChaptersReadTotal } = params;
+  const { userId, user, book, existingProgress, chapterCount, actionType, otherBooksChaptersReadTotal } = params;
 
   const currentChaptersRead = existingProgress?.chaptersRead ?? [];
   const alreadyReadCount = currentChaptersRead.length;
@@ -68,7 +85,7 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
   const now = Date.now();
   const userUpdates: Partial<UserDoc> = {};
 
-  if (!hasReadToday(user.lastReadAt)) {
+  if (actionType === 'base' && !hasReadToday(user.lastReadAt)) {
     let streakDays: number;
     let graceDaysLeft: number;
 
@@ -97,12 +114,13 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
     userUpdates.graceDaysLeft = graceDaysLeft;
   }
 
+  if (actionType === 'extra') {
+    userUpdates.lastExtraReadAt = now;
+  }
+
   const totalChaptersRead = otherBooksChaptersReadTotal + newChaptersRead.length;
   userUpdates.totalProgressPercent = Math.round((totalChaptersRead / TOTAL_BIBLE_CHAPTERS) * 1000) / 10;
-
-  const daysFullyElapsed = diffCalendarDays(user.createdAt, now);
-  const expectedByYesterday = daysFullyElapsed * DAILY_CHAPTER_GOAL;
-  userUpdates.overdueChapters = Math.max(0, expectedByYesterday - totalChaptersRead);
+  userUpdates.overdueChapters = computeOverdueChapters(user.createdAt, totalChaptersRead, now);
 
   if (user.currentBookId === book.id) {
     if (status === 'completed') {

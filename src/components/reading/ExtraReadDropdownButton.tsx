@@ -5,24 +5,36 @@ import { colors } from '../../constants/theme';
 interface Props {
   maxAvailable: number;
   isSubmitting: boolean;
+  /** 오늘 이미 사용해서 회색으로 비활성화된 상태. 버튼 자체는 사라지지 않는다. */
+  alreadyDoneToday: boolean;
   onSubmit: (chapterCount: number) => void;
 }
 
-const QUICK_OPTIONS = [1, 3, 5, 10];
-
-export default function ExtraReadDropdownButton({ maxAvailable, isSubmitting, onSubmit }: Props) {
+export default function ExtraReadDropdownButton({
+  maxAvailable,
+  isSubmitting,
+  alreadyDoneToday,
+  onSubmit,
+}: Props) {
   const [isOpen, setIsOpen] = useState(false);
+  const disabled = isSubmitting || alreadyDoneToday;
 
-  const options = QUICK_OPTIONS.filter((n) => n < maxAvailable);
-  options.push(maxAvailable);
+  // 1장부터 밀린 장수(맥시멈)까지 전부 선택 가능 (짝수 포함)
+  const options = Array.from({ length: maxAvailable }, (_, i) => i + 1);
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.toggle} onPress={() => setIsOpen((prev) => !prev)} disabled={isSubmitting}>
-        <Text style={styles.toggleText}>N장 더 읽었어요!</Text>
+      <Pressable
+        style={[styles.toggle, alreadyDoneToday && styles.toggleDone]}
+        onPress={() => setIsOpen((prev) => !prev)}
+        disabled={disabled}
+      >
+        <Text style={[styles.toggleText, alreadyDoneToday && styles.toggleTextDone]}>
+          {alreadyDoneToday ? '오늘 사용 완료' : 'N장 더 읽었어요!'}
+        </Text>
       </Pressable>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <View style={styles.options}>
           {isSubmitting ? (
             <ActivityIndicator color={colors.navy} />
@@ -58,10 +70,16 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
+  toggleDone: {
+    borderColor: colors.border,
+  },
   toggleText: {
     color: colors.navy,
     fontSize: 15,
     fontWeight: '700',
+  },
+  toggleTextDone: {
+    color: colors.textSecondary,
   },
   options: {
     flexDirection: 'row',

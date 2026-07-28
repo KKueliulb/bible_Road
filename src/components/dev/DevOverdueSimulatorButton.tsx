@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { updateUser } from '../../services/usersService';
-import { DAILY_CHAPTER_GOAL } from '../../constants/readingConfig';
 import { colors } from '../../constants/theme';
 
+const TWO_DAYS_MS = 2 * 86400000;
+
 /**
- * 24시간을 실제로 기다리지 않고도 "어제 하루 안 읽어서 밀린 장수가 생긴" 상태를
+ * 24시간을 실제로 기다리지 않고도 "며칠 안 읽어서 밀린 장수가 생긴" 상태를
  * 강제로 만들어보는 개발용 버튼. __DEV__는 production 빌드에서 false라 자동으로 숨겨진다.
+ *
+ * 밀린 장수는 createdAt(가입일) 기준으로 화면에서 실시간 계산되므로, createdAt을
+ * 과거로 밀어서 시뮬레이션한다. 여러 번 누르면 그만큼 더 밀린 것으로 누적된다.
  */
 export default function DevOverdueSimulatorButton() {
   const { userId, user, refreshUser } = useAuth();
@@ -19,10 +23,10 @@ export default function DevOverdueSimulatorButton() {
     if (!userId || !user) return;
     setIsSubmitting(true);
     try {
-      const twoDaysAgo = Date.now() - 2 * 86400000;
       await updateUser(userId, {
-        lastReadAt: twoDaysAgo,
-        overdueChapters: DAILY_CHAPTER_GOAL,
+        createdAt: user.createdAt - TWO_DAYS_MS,
+        lastReadAt: user.lastReadAt !== null ? user.lastReadAt - TWO_DAYS_MS : Date.now() - TWO_DAYS_MS,
+        lastExtraReadAt: null,
         graceDaysLeft: Math.max(0, user.graceDaysLeft - 1),
       });
       await refreshUser();
@@ -37,7 +41,7 @@ export default function DevOverdueSimulatorButton() {
         {isSubmitting ? (
           <ActivityIndicator color={colors.textSecondary} />
         ) : (
-          <Text style={styles.text}>🕐 [개발용] 어제 안 읽은 것으로 시뮬레이션</Text>
+          <Text style={styles.text}>🕐 [개발용] 이틀 밀린 것으로 시뮬레이션 (여러 번 누르면 더 밀림)</Text>
         )}
       </Pressable>
     </View>
@@ -61,5 +65,6 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 12,
     color: colors.textSecondary,
+    textAlign: 'center',
   },
 });

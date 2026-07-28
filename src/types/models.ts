@@ -20,6 +20,7 @@ export interface UserDoc {
   totalProgressPercent: number;
   streakDays: number;
   lastReadAt: number | null;
+  lastExtraReadAt: number | null;
   overdueChapters: number;
   graceDaysLeft: number;
   rereadCount: number;

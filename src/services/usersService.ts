@@ -36,6 +36,7 @@ export async function createUser(name: string, nickname: string): Promise<{ id: 
     totalProgressPercent: 0,
     streakDays: 0,
     lastReadAt: null,
+    lastExtraReadAt: null,
     overdueChapters: 0,
     graceDaysLeft: 0,
     rereadCount: 0,
