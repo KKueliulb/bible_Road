@@ -116,6 +116,10 @@ export default function RoadmapScreen({ navigation }: Props) {
       Alert.alert('아직 시작할 수 없어요', '이전 책을 먼저 진행해주세요.');
       return;
     }
+    if (status === 'completed') {
+      Alert.alert('이미 완독했어요', '완독한 책은 다시 들어갈 수 없어요.');
+      return;
+    }
 
     if (userId && user) {
       try {
