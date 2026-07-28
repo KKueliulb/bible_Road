@@ -17,6 +17,7 @@ const Tab = createBottomTabNavigator<MainTabsParamList>();
 export default function MainTabs() {
   return (
     <Tab.Navigator
+      initialRouteName="RoadmapTab"
       screenOptions={{
         headerTintColor: colors.navy,
         tabBarActiveTintColor: colors.orange,

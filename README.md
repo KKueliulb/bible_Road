@@ -227,6 +227,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
   - `typography`에 `h1`/`h2`/`h3`/`body`/`bodyBold`/`caption`/`captionBold`/`small`/`smallBold` 프리셋을 만들어 폰트 패밀리+크기를 한 번에 지정합니다.
 - **화면별 반영**: 로그인/회원가입/온보딩, 홈 로드맵(진행중 노드에 그림자 강조, 상태 라벨 색상화), 읽기 화면(밀린 장수 있을 때 빨간색/없을 때 초록색, 읽었어요 버튼에 그림자), 랭킹(상위 3명 메달 이모지), 마이페이지(닉네임 이니셜 아바타)까지 전체 화면에 위 토큰을 적용했습니다.
 - **하단 탭바 아이콘화**: 텍스트 라벨 대신 `@expo/vector-icons`의 Ionicons만 사용(랭킹=podium, 홈=home, 마이페이지=person, 선택 시 filled/미선택 시 outline). 전체 아이콘 폰트를 다 번들에 넣지 않도록 `@expo/vector-icons/Ionicons`처럼 서브패스로 직접 import해서 실제 쓰는 아이콘 세트만 포함시켰습니다.
+- 앱을 처음 열었을 때(로그인 직후) 보이는 첫 화면은 항상 **홈 로드맵**입니다(`MainTabs`의 `initialRouteName="RoadmapTab"`). 탭 순서 자체(랭킹-홈-마이페이지)와는 별개입니다.
 - 홈 로드맵의 상단바/오늘의 목표 플로팅 바/노드 연결 점선은 위 "홈 로드맵" 섹션을 참고하세요.
 
 ## 다음 단계
