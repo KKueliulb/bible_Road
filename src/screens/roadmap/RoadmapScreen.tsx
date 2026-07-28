@@ -15,7 +15,6 @@ import TodayGoalFloatingBar from '../../components/roadmap/TodayGoalFloatingBar'
 import TestamentDropdown from '../../components/roadmap/TestamentDropdown';
 import RoadmapNode from '../../components/roadmap/RoadmapNode';
 import RoadmapConnector from '../../components/roadmap/RoadmapConnector';
-import ParticipantListInline from '../../components/roadmap/ParticipantListInline';
 import { colors, spacing, typography } from '../../constants/theme';
 
 type Props = NativeStackScreenProps<RoadmapStackParamList, 'RoadmapHome'>;
@@ -177,11 +176,9 @@ export default function RoadmapScreen({ navigation }: Props) {
                   displayOrder={getDisplayOrder(book, user?.roadmapStartTestament ?? 'OT')}
                   chaptersRead={progressMap[book.id]?.chaptersRead.length ?? 0}
                   participantCount={participantCounts[book.id] ?? 0}
+                  participants={status === 'in_progress' ? participants : undefined}
                   onPress={() => handleNodePress(book, status)}
                 />
-                {status === 'in_progress' && (
-                  <ParticipantListInline participants={participants} alignRight={alignRight} />
-                )}
                 {index < books.length - 1 && <RoadmapConnector startRight={alignRight} />}
               </View>
             );
