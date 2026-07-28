@@ -2,7 +2,7 @@
 
 교회 청년부 대상 성경 통독 습관 앱. Expo(React Native) + Firebase(Firestore/FCM) 기반.
 
-> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~5단계 (프로젝트 셋업 / 정적 데이터 시딩 / 인증 / 홈 로드맵 / 읽기 화면)**.
+> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~7단계 (프로젝트 셋업 / 정적 데이터 시딩 / 인증 / 홈 로드맵 / 읽기 화면 / 랭킹 / 마이페이지)**.
 
 ## 시작하기
 
@@ -75,25 +75,27 @@ src/
     auth/                    # LoginScreen, SignupScreen
     roadmap/                 # RoadmapScreen (홈 로드맵)
     reading/                 # ReadingScreen (체크리스트, 읽었어요 등)
-    placeholder/             # 다음 단계에서 채워질 화면 자리표시자
+    ranking/                 # RankingScreen (전체 진행률 랭킹)
+    mypage/                  # MyPageScreen (통계/닉네임 변경/초기화/로그아웃)
   components/
     roadmap/                 # TestamentDropdown, RoadmapNode, ParticipantListInline
     reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList
   context/AuthContext.tsx    # 로그인 상태, 세션 복원, refreshUser
   services/
     firebase.ts              # Firebase 초기화
-    usersService.ts          # users 컬렉션 CRUD
+    usersService.ts          # users 컬렉션 CRUD, 랭킹 구독, 닉네임 변경
     booksService.ts           # books 컬렉션 조회 (구약/신약 필터, id로 단건 조회)
-    bookProgressService.ts    # users/{userId}/bookProgress 조회/저장
-    participantsService.ts    # bookParticipants/{bookId}/members 조회/등록
+    bookProgressService.ts    # users/{userId}/bookProgress 조회/저장/전체삭제
+    participantsService.ts    # bookParticipants/{bookId}/members 조회/등록/삭제
     cheerLogsService.ts        # 화이팅 하루 1회 제한 체크 + 전송
-    readingService.ts          # "읽었어요/N장 더 읽었어요" 핵심 로직 (아래 참고)
+    readingService.ts          # "읽었어요/N장 더 읽었어요" 핵심 로직 + 진행 초기화 (아래 참고)
   data/books.ts               # 66권 정적 데이터
   scripts/seedBooks.ts         # books 컬렉션 시딩 스크립트 (firebase-admin)
   types/models.ts              # Firestore 데이터 모델 타입
   constants/
     theme.ts                   # 색상 등 최소 디자인 토큰 (폴리싱은 이후 단계)
     readingConfig.ts            # DAILY_CHAPTER_GOAL (하루 기본 목표 장수, 여기서 조정)
+    profileConfig.ts             # NICKNAME_CHANGE_LIMIT (닉네임 변경 가능 횟수, 여기서 조정)
 ```
 
 ## 홈 로드맵 (4단계)
@@ -128,6 +130,22 @@ src/
 - **책 잠금 확인**: 로그인 후 홈 로드맵에서 진행중이 아닌(미시작) 책 노드를 눌러보세요. 안내 메시지만 뜨고 들어가지지 않으면 정상입니다. 참여인원/전체 장수는 그 노드에도 그대로 표시됩니다.
 - **밀린 장수(N장 더 읽었어요) 확인**: 24시간을 기다리지 않아도 되도록, 읽기 화면 체크리스트 아래에 개발 빌드에서만 보이는 **"🕐 [개발용] 이틀 밀린 것으로 시뮬레이션"** 버튼을 추가했습니다. `createdAt`(가입일)을 이틀 전으로 밀어서 밀린 장수를 실시간 계산 기준으로 실제로 늘어나게 만듭니다. 여러 번 누르면 그만큼 더 밀린 상태(3일, 4일...)도 테스트할 수 있습니다.
 
+## 랭킹 (6단계)
+
+- `users` 컬렉션을 `totalProgressPercent`(전체 진행률) 내림차순으로 **실시간(onSnapshot)** 구독해 순위를 매깁니다.
+- 본인 행은 주황색으로 강조 표시됩니다.
+
+## 마이페이지 (7단계)
+
+- **내 통계**: 전체 진행률, 연속 읽기(스트릭), 밀린 장수(읽기 화면과 동일하게 `computeLiveOverdueChapters`로 실시간 계산), 다시 읽기 횟수를 카드로 표시합니다.
+- **닉네임 변경**: 평생 `NICKNAME_CHANGE_LIMIT`(기본 3회)까지만 가능합니다. 다른 유저와 중복되면 변경할 수 없고, 횟수를 다 쓰면 입력창 자체가 비활성화됩니다.
+- **처음부터 다시 읽기(초기화)**: 확인 Alert를 거친 뒤 실행되는 되돌릴 수 없는 동작입니다.
+  - 초기화되는 것: 모든 책의 진행 기록(`bookProgress`), `currentBookId`/`currentTestament`/`currentChapter`(창세기 1장으로), 전체 진행률, 밀린 장수(`overdueChapters`/`extraChaptersRepaid`), 유예일수(`graceDaysLeft`), 마지막 읽은 시각(`lastReadAt`/`lastExtraReadAt`).
+  - 유지되는 것: **연속 읽기(streakDays)는 초기화하지 않습니다.**
+  - `rereadCount`(다시 읽기 횟수)가 1 증가합니다.
+  - 진행중이던 책(`currentBookId`)의 `bookParticipants` 참여기록만 제거합니다. 이미 완독했거나 지나온 다른 책들의 참여기록은 실제로 함께 읽었던 이력이므로 그대로 남습니다.
+- **로그아웃**: 확인 Alert 후 세션(AsyncStorage)을 지우고 로그인 화면으로 돌아갑니다.
+
 ## 다음 단계
 
-랭킹/마이페이지(6~7단계)부터 이어서 진행 예정입니다. 자세한 로드맵은 설계 문서를 참고하세요.
+온보딩(8단계)부터 이어서 진행 예정입니다. 자세한 로드맵은 설계 문서를 참고하세요.

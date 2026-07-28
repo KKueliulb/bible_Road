@@ -1,9 +1,16 @@
-import { collection, doc, getDoc, getDocs, limit, query, setDoc, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, onSnapshot, orderBy, query, setDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
 import { UserDoc } from '../types/models';
 import { BOOKS } from '../data/books';
+import { NICKNAME_CHANGE_LIMIT } from '../constants/profileConfig';
 
 const usersCollection = collection(db, 'users');
+
+export interface RankingEntry {
+  userId: string;
+  nickname: string;
+  totalProgressPercent: number;
+}
 
 export async function isNicknameTaken(nickname: string): Promise<boolean> {
   const snapshot = await getDocs(query(usersCollection, where('nickname', '==', nickname), limit(1)));
@@ -52,4 +59,43 @@ export async function createUser(name: string, nickname: string): Promise<{ id: 
 
 export async function updateUser(userId: string, updates: Partial<UserDoc>): Promise<void> {
   await setDoc(doc(usersCollection, userId), updates, { merge: true });
+}
+
+/** 총 진행률(totalProgressPercent) 내림차순 랭킹을 실시간으로 구독한다. 반환값을 호출하면 구독이 해제된다. */
+export function subscribeToRanking(onChange: (ranking: RankingEntry[]) => void): () => void {
+  return onSnapshot(query(usersCollection, orderBy('totalProgressPercent', 'desc')), (snapshot) => {
+    onChange(
+      snapshot.docs.map((docSnap) => {
+        const data = docSnap.data() as UserDoc;
+        return { userId: docSnap.id, nickname: data.nickname, totalProgressPercent: data.totalProgressPercent };
+      })
+    );
+  });
+}
+
+type NicknameChangeResult = { ok: true } | { ok: false; error: string };
+
+/** 닉네임 변경. 평생 NICKNAME_CHANGE_LIMIT회까지만 허용된다. */
+export async function changeNickname(
+  userId: string,
+  currentChangeCount: number,
+  newNickname: string
+): Promise<NicknameChangeResult> {
+  const trimmed = newNickname.trim();
+  if (!trimmed) {
+    return { ok: false, error: '닉네임을 입력해주세요.' };
+  }
+  if (currentChangeCount >= NICKNAME_CHANGE_LIMIT) {
+    return { ok: false, error: '닉네임 변경 가능 횟수를 모두 사용했어요.' };
+  }
+  if (await isNicknameTaken(trimmed)) {
+    return { ok: false, error: '이미 사용 중인 닉네임입니다.' };
+  }
+
+  await updateUser(userId, {
+    nickname: trimmed,
+    nicknameChangeCount: currentChangeCount + 1,
+    lastNicknameChangedAt: Date.now(),
+  });
+  return { ok: true };
 }

@@ -1,7 +1,8 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import PlaceholderScreen from '../screens/placeholder/PlaceholderScreen';
 import RoadmapStack from './RoadmapStack';
+import RankingScreen from '../screens/ranking/RankingScreen';
+import MyPageScreen from '../screens/mypage/MyPageScreen';
 import { colors } from '../constants/theme';
 
 export type MainTabsParamList = {
@@ -11,14 +12,6 @@ export type MainTabsParamList = {
 };
 
 const Tab = createBottomTabNavigator<MainTabsParamList>();
-
-function RankingScreen() {
-  return <PlaceholderScreen label="랭킹" />;
-}
-
-function MyPageScreen() {
-  return <PlaceholderScreen label="마이페이지" />;
-}
 
 export default function MainTabs() {
   return (

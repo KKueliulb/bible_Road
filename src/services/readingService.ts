@@ -1,5 +1,6 @@
 import { Book } from './booksService';
-import { saveBookProgress } from './bookProgressService';
+import { deleteAllProgress, saveBookProgress } from './bookProgressService';
+import { removeParticipant } from './participantsService';
 import { updateUser } from './usersService';
 import { BOOKS, TOTAL_BIBLE_CHAPTERS } from '../data/books';
 import { DAILY_CHAPTER_GOAL } from '../constants/readingConfig';
@@ -159,4 +160,30 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
   await updateUser(userId, userUpdates);
 
   return { progress, userUpdates };
+}
+
+/**
+ * 마이페이지 '초기화'(처음부터 다시 읽기). streakDays는 유지하고 그 외 진행 상태는 전부 리셋한다.
+ * - 모든 책의 bookProgress 삭제, currentBookId/currentTestament/currentChapter를 창세기 1권으로
+ * - totalProgressPercent/overdueChapters/extraChaptersRepaid/graceDaysLeft를 가입 시 기본값(0)으로, lastReadAt/lastExtraReadAt은 null로
+ * - rereadCount + 1
+ * - 진행중이던 책(user.currentBookId)의 참여기록만 제거(다른 책은 실제로 함께 읽었던 기록이라 유지)
+ */
+export async function resetUserProgress(userId: string, user: UserDoc): Promise<void> {
+  const firstBook = [...BOOKS].sort((a, b) => a.order - b.order)[0];
+
+  await Promise.all([deleteAllProgress(userId), removeParticipant(user.currentBookId, userId)]);
+
+  await updateUser(userId, {
+    currentTestament: firstBook.testament,
+    currentBookId: firstBook.id,
+    currentChapter: 0,
+    totalProgressPercent: 0,
+    lastReadAt: null,
+    lastExtraReadAt: null,
+    overdueChapters: 0,
+    extraChaptersRepaid: 0,
+    graceDaysLeft: 0,
+    rereadCount: user.rereadCount + 1,
+  });
 }

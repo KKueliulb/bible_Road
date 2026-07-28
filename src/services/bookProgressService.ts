@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { BookProgressDoc } from '../types/models';
 
@@ -22,4 +22,10 @@ export async function saveBookProgress(
   progress: BookProgressDoc
 ): Promise<void> {
   await setDoc(doc(db, 'users', userId, 'bookProgress', bookId), progress);
+}
+
+/** 유저의 모든 책 진행 기록을 삭제한다 (마이페이지 '초기화' 전용). */
+export async function deleteAllProgress(userId: string): Promise<void> {
+  const snapshot = await getDocs(collection(db, 'users', userId, 'bookProgress'));
+  await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
 }
