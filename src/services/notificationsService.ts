@@ -70,8 +70,8 @@ export async function refreshDailyReminder(reminderTime: string, hasReadToday: b
   await Notifications.scheduleNotificationAsync({
     identifier: DAILY_REMINDER_ID,
     content: {
-      title: '성경 통독 로드',
-      body: '오늘의 목표를 아직 다 못 채우셨어요! 지금 읽어볼까요? 🔥',
+      title: 'Bible Road',
+      body: '아직 말씀을 읽지 않으셨네요? 지금 읽어볼까요? 🔥',
       sound: 'default',
     },
     trigger: {
