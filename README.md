@@ -79,7 +79,7 @@ src/
     mypage/                  # MyPageScreen (통계/닉네임 변경/로그아웃)
     onboarding/              # OnboardingScreen (구약/신약 시작 선택)
   components/
-    common/                  # Avatar (가입 시각 기반 배경색 + 십자가 아이콘)
+    common/                  # Avatar (가입 시각 기반 파스텔톤 배경 + 닉네임 첫 글자)
     roadmap/                 # HomeTopBar, TodayGoalFloatingBar, TestamentDropdown, RoadmapNode(그라데이션+병합된 참여자 카드 포함), RoadmapConnector
     reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList
     ranking/                 # RankingPodium(TOP 3 단상), RankingListRow, ProgressBar
@@ -152,7 +152,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
   1. **회독수(rereadCount)** 내림차순 — 회독을 많이 한 사람이 먼저.
   2. 회독수가 같으면 **총 진행률(totalProgressPercent)** 내림차순.
 - **TOP 3는 단상(포디움) 형식**으로 상단에 표시됩니다(`RankingPodium`, 2등-1등-3등 순으로 배치해 가운데 1등이 가장 높게 보임).
-- 그 아래로 **1등부터 50등까지**를 리스트로 나열합니다(`RankingListRow`). 각 행에는 아바타(가입 시각 기반 배경색 + 십자가 아이콘), 닉네임, **현재 읽고 있는 위치**(`{책이름} {읽은 장수}/{전체 장수}`, `user.currentBookId`/`currentChapter`를 `src/data/books.ts`의 정적 데이터로 변환), 진척도 막대 그래프(`ProgressBar`) + 소수점 첫째 자리까지의 퍼센트가 표시됩니다. 포디움에도 동일하게 현재 읽는 위치가 표시됩니다.
+- 그 아래로 **1등부터 50등까지**를 리스트로 나열합니다(`RankingListRow`). 각 행에는 아바타(가입 시각 기반 파스텔톤 배경 + 닉네임 첫 글자), 닉네임, **현재 읽고 있는 위치**(`{책이름} {읽은 장수}/{전체 장수}`, `user.currentBookId`/`currentChapter`를 `src/data/books.ts`의 정적 데이터로 변환), 진척도 막대 그래프(`ProgressBar`) + 소수점 첫째 자리까지의 퍼센트가 표시됩니다. 포디움에도 동일하게 현재 읽는 위치가 표시됩니다.
 - 본인을 제외한 모든 참가자의 닉네임 옆에는 본명이 `(본명)` 형식으로 함께 표시됩니다. 본인 행에는 대신 `(나)`가 표시되고 주황색으로 강조됩니다.
 - **하단 탭바 바로 위에 내 등수 고정 표시**: 리스트를 드래그해서 내 등수 행이 화면에 보이는 동안에는 사라지고, 화면 밖으로 스크롤돼 안 보이게 되면 다시 하단에 떠서 고정됩니다(`FlatList`의 `onViewableItemsChanged`로 내 행의 가시성을 추적).
 
@@ -165,7 +165,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 
 ## 마이페이지 (7단계)
 
-- **프로필 아바타**: 사진 업로드 기능은 없앴습니다(Firebase Storage에 더 이상 의존하지 않습니다). 대신 `Avatar` 컴포넌트가 `users/{userId}.createdAt`(가입 시각, epoch ms)을 24비트 값으로 변환한 16진수(`#rrggbb`)를 배경색으로 쓰고 그 위에 흰색 십자가 아이콘(두 개의 `View`로 그린 도형, 아이콘 폰트 아님)을 표시합니다. 가입 시각이 곧 색이라 사람마다 다르고 항상 같은 색이 나옵니다. 마이페이지/랭킹 화면 모두 동일하게 적용됩니다.
+- **프로필 아바타**: 사진 업로드 기능은 없앴습니다(Firebase Storage에 더 이상 의존하지 않습니다). 대신 `Avatar` 컴포넌트가 `users/{userId}.createdAt`(가입 시각, epoch ms)을 hue(색상)로 삼아 만든 파스텔톤 배경(채도 55%, 명도 82%의 HSL을 hex로 변환) 위에 닉네임 첫 글자를 표시합니다. 가입 시각이 곧 색상이라 사람마다 다르고 항상 같은 색이 나오면서도, 채도/명도를 고정해 너무 쨍하거나 어두운 색은 나오지 않습니다. 마이페이지/랭킹 화면 모두 동일하게 적용됩니다.
 - **내 통계**: 전체 진행률, 연속 읽기(스트릭), 밀린 장수(읽기 화면과 동일하게 `computeLiveOverdueChapters`로 실시간 계산), **회독**(`rereadCount`, 예전 "다시 읽기" 칸에서 이름만 변경)을 카드로 표시합니다.
 - **닉네임 변경**: 평생 `NICKNAME_CHANGE_LIMIT`(기본 3회)까지만 가능합니다. 다른 유저와 중복되면 변경할 수 없고, 횟수를 다 쓰면 입력창 자체가 비활성화됩니다.
 - **로그아웃**: 확인 Alert 후 세션(AsyncStorage)을 지우고 로그인 화면으로 돌아갑니다.
