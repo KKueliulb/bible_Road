@@ -26,7 +26,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "seed:books": "tsx src/scripts/seedBooks.ts"
+    "seed:books": "tsx src/scripts/seedBooks.ts",
+    "reset:users": "tsx src/scripts/resetUsers.ts"
   },
   "private": true
 }
