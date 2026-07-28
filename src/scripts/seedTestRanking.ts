@@ -102,7 +102,6 @@ async function seedTestRanking() {
       rereadCount: randomRereadCount(),
       roadmapStartTestament: 'OT',
       hasOnboarded: true,
-      expoPushToken: null,
       dailyReminderTime: '20:00',
       // 실제처럼 보이도록 가입 시각을 최근 2년 내로 무작위로 흩어 넣는다.
       createdAt: Date.now() - randomInt(0, 730 * 86400000),

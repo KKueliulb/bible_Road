@@ -58,7 +58,6 @@ export async function createUser(name: string, nickname: string): Promise<{ id: 
     rereadCount: 0,
     roadmapStartTestament: 'OT',
     hasOnboarded: false,
-    expoPushToken: null,
     dailyReminderTime: '20:00',
     createdAt: Date.now(),
   };

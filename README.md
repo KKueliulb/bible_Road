@@ -2,7 +2,7 @@
 
 교회 청년부 대상 성경 통독 습관 앱. Expo(React Native) + Firebase(Firestore/FCM) 기반.
 
-> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~9단계 + 10단계 일부 (프로젝트 셋업 / 정적 데이터 시딩 / 인증 / 홈 로드맵 / 읽기 화면 / 랭킹 / 마이페이지 / 온보딩 / Cloud Functions·푸시 알림 / 디자인 폴리싱)**. 11단계(테스트/배포)는 아직입니다.
+> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~9단계 + 10단계 일부 (프로젝트 셋업 / 정적 데이터 시딩 / 인증 / 홈 로드맵 / 읽기 화면 / 랭킹 / 마이페이지 / 온보딩 / 알림 / 디자인 폴리싱)**. 11단계(테스트/배포)는 아직입니다.
 
 ## 시작하기
 
@@ -12,9 +12,7 @@ cp .env.example .env   # Firebase 설정값을 채워 넣으세요 (아래 참�
 npm start
 ```
 
-`npm start` 실행 후 터미널에 뜨는 QR코드를 Expo Go 앱으로 스캔하거나 `a`(Android) / `i`(iOS) / `w`(Web) 키로 각 플랫폼에서 실행합니다.
-
-> **⚠️ 푸시 알림은 Expo Go에서 테스트할 수 없습니다.** Expo Go는 SDK 버전과 무관하게 원격 푸시(FCM)를 지원하지 않습니다. 푸시 알림을 제외한 나머지 기능은 지금처럼 Expo Go로 계속 테스트할 수 있고, 푸시까지 확인하려면 아래 "푸시 알림" 섹션의 EAS Build(Android 내부 배포)를 사용하세요.
+`npm start` 실행 후 터미널에 뜨는 QR코드를 Expo Go 앱으로 스캔하거나 `a`(Android) / `i`(iOS) / `w`(Web) 키로 각 플랫폼에서 실행합니다. 알림 기능(아래 "알림" 섹션)이 서버 없는 로컬 알림이라, Expo Go로도 그대로 확인할 수 있습니다.
 
 ## Firebase 설정
 
@@ -106,9 +104,9 @@ src/
     readingConfig.ts            # DAILY_CHAPTER_GOAL (하루 기본 목표 장수, 여기서 조정)
     profileConfig.ts             # NICKNAME_CHANGE_LIMIT (닉네임 변경 가능 횟수, 여기서 조정)
 assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OFL-1.1, LICENSE.txt 참고)
-functions/                       # Cloud Functions (매일 리마인더 스케줄 + 화이팅 알림 트리거, 아래 "푸시 알림" 참고)
-eas.json                         # EAS Build 프로필 (preview = Android 내부 배포 apk)
 ```
+
+> `eas.json`과 `app.json`의 `android.package`/`googleServicesFile`/`expo-notifications` 플러그인 설정은 원격 푸시(Cloud Functions 기반 화이팅 알림)를 시도했다가 서버 비용 없이 가는 쪽으로 방향을 바꾸면서 남은 흔적입니다. 지금은 로컬 알림만 쓰므로 당장 필요하지 않지만, 나중에 EAS Build 자체가 다시 필요해지면(원격 푸시를 되살리거나 스토어 배포 시) 그대로 쓸 수 있어 남겨뒀습니다.
 
 ## 홈 로드맵 (4단계)
 
@@ -143,7 +141,7 @@ eas.json                         # EAS Build 프로필 (preview = Android 내부
   
   즉 **"읽었어요!"는 밀린 장수를 늘리지도 줄이지도 않고(그 자리에서 공백을 확정만 시킴), 오직 "N장 더 읽었어요!"만 실제로 줄입니다.**
 - **읽기 화면 "오늘의 목표" 카드**: 오른쪽에 🔥 아이콘과 현재 스트릭(연속 읽기 일수)을 함께 보여줍니다(`TodayGoalCard`의 `streakDays` prop, `computeLiveStreakDays`로 계산).
-- 화이팅 버튼은 `cheerLogs/{fromUserId_toUserId_date}` 문서 존재 여부로 하루 1회 제한을 클라이언트에서 체크합니다. 이 문서가 생성되면 Cloud Functions가 상대방에게 실제 푸시 알림을 보냅니다(아래 "푸시 알림" 참고).
+- 화이팅 버튼은 `cheerLogs/{fromUserId_toUserId_date}` 문서 존재 여부로 하루 1회 제한을 클라이언트에서 체크합니다. 다른 사람 기기로 실시간 알림을 보내는 건 서버가 있어야 가능해서(아래 "알림" 참고) 넣지 않았고, 화이팅은 지금도 앱 안에서만(상대방에게 알림 없이) 동작합니다.
 - **홈으로 나가는 뒤로가기 버튼은 화살표(`<`)만 표시**됩니다(`headerBackButtonDisplayMode: 'minimal'`) — iOS에서 화살표 옆에 이전 화면 제목이 함께 붙어 나오던 것을 없앴습니다.
 
 ### 개발 중 테스트하기 (책 잠금 / 밀린 장수)
@@ -195,45 +193,30 @@ eas.json                         # EAS Build 프로필 (preview = Android 내부
 - 이 선택은 `users/{userId}`의 `roadmapStartTestament`에 저장되고, `src/data/books.ts`의 `getPersonalizedSequence`가 이 값을 기준으로 **완독 시 다음 책 자동 진행 순서**를 재배열합니다. 구약/신약 드롭다운으로 각 테스타먼트 안의 책 목록을 보는 것 자체는 그대로 유지됩니다. (로드맵 노드에 개인화 순번을 보여주던 배지는 화면이 치우쳐 보인다는 피드백으로 제거했습니다.)
 - 온보딩 완료 시 `currentTestament`/`currentBookId`/`currentChapter`가 선택한 시작 성경의 1번 책으로 설정되고 `hasOnboarded: true`로 바뀝니다. 이후 다시 온보딩 화면으로 돌아오지 않습니다(변경하려면 아직 별도 기능이 없습니다).
 
-## 푸시 알림 (9단계)
+## 알림 (9단계)
 
-Expo Go는 SDK 버전과 무관하게 원격 푸시(FCM)를 지원하지 않아서, 이 단계부터는 **EAS Build로 만든 Android APK**로만 실제 푸시를 확인할 수 있습니다. 그래서 이 단계에서 Expo SDK를 54 → 57(최신)로 올리고 EAS Build를 붙였습니다 — SDK 버전 자체는 Expo Go 지원 여부와 무관하지만, 어차피 Expo Go를 벗어나야 하는 김에 최신 SDK로 맞췄습니다.
+서버(Cloud Functions/Blaze 요금제) 없이, **기기에 직접 예약하는 로컬 알림**만으로 구현했습니다. 그래서 원격 푸시와 달리 비용이 전혀 들지 않고, Expo Go에서도 그대로 동작합니다(원격 푸시만 Expo Go 제한 대상이라 이 기능은 해당 없음).
 
-### 동작 방식
+- 다른 사람 기기로 실시간으로 알림을 보내는 기능(화이팅 알림 등)은 구조상 서버 없이는 불가능해서 **넣지 않았습니다.** 화이팅 버튼 자체는 예전처럼 앱 안에서만 동작합니다(하루 1회 제한, 상대방에게 알림 없음).
+- **매일 리마인더**만 로컬 알림으로 구현했습니다: `users/{userId}.dailyReminderTime`(현재는 변경 화면이 없어 항상 `"20:00"`)에 맞춰, 그 시각에 아직 "읽었어요!"를 안 눌렀으면 "오늘의 목표를 아직 다 못 채우셨어요!" 알림이 뜹니다.
 
-- 로그인/세션 복원 직후(`AuthContext`) `registerForPushNotifications()`(`src/services/notificationsService.ts`)가 알림 권한을 요청하고 **Expo push token**을 발급받아 `users/{userId}.expoPushToken`에 저장합니다. 실기기가 아니거나, 권한을 거부했거나, EAS 프로젝트가 아직 설정 안 됐으면(`projectId` 없음) 조용히 아무 것도 안 합니다(에러를 던지지 않음).
-- 서버 발송은 Firebase Admin SDK로 직접 FCM을 호출하는 대신, **Expo Push API**(`https://exp.host/--/api/v2/push/send`)에 Expo push token으로 요청합니다. Cloud Functions 쪽에 raw FCM 자격증명을 따로 다룰 필요가 없어 훨씬 단순합니다.
-- **매일 리마인더** (`functions/src/index.ts`의 `sendDailyReminders`): 30분마다 실행되는 스케줄 함수가 지금 KST 시각을 30분 단위로 내림한 값과 `users.dailyReminderTime`이 일치하는 유저 중, 오늘 아직 "읽었어요!"를 안 누른 사람에게만 푸시를 보냅니다. (현재 `dailyReminderTime`을 바꾸는 화면은 없어서 모든 유저가 기본값 `"20:00"`입니다.) 서버가 한국 교회 청년부 대상 앱이라는 전제로 **시간대를 KST(UTC+9) 하나로 고정**했습니다(서버 실행 환경의 로컬 타임존에 의존하지 않도록 직접 오프셋 계산).
-- **화이팅 알림** (`sendCheerNotification`): `cheerLogs/{fromUserId_toUserId_date}` 문서가 생성되면(읽기 화면에서 화이팅 버튼) Firestore 트리거가 그 문서 ID에서 두 유저 ID를 파싱해, 받는 사람에게 "OO님이 화이팅을 보냈어요!" 푸시를 보냅니다.
+### 동작 방식 (`src/services/notificationsService.ts`)
 
-### 설정 방법 (직접 하셔야 하는 부분)
-
-1. **Firebase Blaze(종량제) 요금제로 업그레이드** — Cloud Functions는 Spark(무료) 플랜에서 배포할 수 없습니다. 실사용량이 매우 적어 대부분 무료 한도 안에서 끝납니다.
-2. **Firebase 콘솔 > 프로젝트 설정 > 일반 > Android 앱 추가**(패키지명 `com.bibleroad.app`, `app.json`의 `expo.android.package`와 반드시 일치)를 하면 `google-services.json`을 받을 수 있습니다. 저장소 루트에 그대로 저장하세요(`.gitignore` 처리되어 있어 커밋되지 않습니다). 패키지명을 바꾸고 싶으면 `app.json`에서도 같이 바꾸세요.
-3. **Expo Push 알림용 FCM 서비스 계정 업로드** — Firebase 콘솔 > 프로젝트 설정 > 서비스 계정에서 새 비공개 키를 발급받고, `npx eas credentials` → Android 선택 → Push Notifications: Google Service Account 항목에 업로드하세요. 이 단계를 건너뛰면 push token 발급까지는 되는데 실제 발송이 조용히 실패합니다.
-4. **EAS 프로젝트 연결**: `npx eas init` (또는 `npx eas build:configure`)을 실행하면 `app.json`에 `extra.eas.projectId`가 자동으로 채워집니다. 이게 없으면 `registerForPushNotifications`가 계속 null을 반환합니다.
-5. **Cloud Functions 배포**:
-   ```bash
-   firebase use --add          # 위에서 만든 Firebase 프로젝트 선택 (.firebaserc 생성)
-   cd functions
-   npm install
-   npm run deploy               # 내부적으로 build 후 firebase deploy --only functions 실행
-   ```
-6. **Android 베타 빌드 만들기**:
-   ```bash
-   npm run build:android:preview   # eas build --platform android --profile preview
-   ```
-   빌드가 끝나면 EAS가 apk 다운로드 링크를 줍니다. 그 링크를 테스터들에게 공유하면 Play Store 없이 바로 설치해서 테스트할 수 있습니다(`eas.json`의 `preview` 프로필, `distribution: "internal"`).
+- `refreshDailyReminder(dailyReminderTime, hasReadToday)`가 핵심 함수입니다. **로그인/세션 복원 직후**, 그리고 **"읽었어요!"가 성공해서 `lastReadAt`이 바뀔 때마다**(`AuthContext`의 `useEffect`) 호출됩니다.
+- 매번 호출될 때마다: 기존에 예약해둔 리마인더를 취소하고, 다시 계산해서 새로 예약합니다.
+  - 오늘 아직 안 읽었고 리마인더 시각이 아직 안 지났으면 → **오늘** 그 시각으로 예약.
+  - 오늘 이미 읽었거나, 리마인더 시각이 이미 지났으면 → **내일** 같은 시각으로 예약.
+- 알림 권한이 없으면(거부했거나 시뮬레이터) 조용히 아무 것도 하지 않습니다.
+- **한계**: 이 방식은 앱을 열거나 "읽었어요!"를 누를 때마다 "다음 리마인더"를 한 번씩만 미리 예약해두는 구조라, **앱을 2일 이상 연속으로 아예 안 열면** 그 사이 어느 하루는 리마인더가 안 올 수 있습니다(하루 정도는 이전에 예약해둔 게 남아있어 오지만, 그 다음날 걸 다시 예약할 기회가 없기 때문). 매일 여는 습관 앱 특성상 실사용에서는 문제없을 것으로 예상하지만, 완벽히 보장하려면 향후 며칠치를 한꺼번에 예약해두는 방식으로 보완할 수 있습니다.
 
 ### 확인하는 법
 
-- 베타 apk를 설치하고 로그인하면 알림 권한 팝업이 뜹니다. 허용 후 Firestore `users/{userId}.expoPushToken`에 `ExponentPushToken[...]` 값이 채워지는지 확인하세요.
-- 다른 테스터에게 화이팅을 보내보면 몇 초 안에 푸시가 와야 합니다.
-- 매일 리마인더는 최대 30분까지 딜레이가 있을 수 있습니다(스케줄 주기).
+- 앱에서 알림 권한을 허용하고, 오늘 아직 "읽었어요!"를 누르지 않은 상태로 리마인더 시각(기본 20:00)까지 기다리면 알림이 옵니다.
+- "읽었어요!"를 누른 뒤에는 오늘 알림이 뜨지 않고, 다음날 같은 시각으로 다시 예약된 걸 확인할 수 있습니다.
 
 ## 디자인 폴리싱 (10단계 일부)
 
-9단계(Cloud Functions·푸시 알림) 전에 먼저 진행했습니다. 색 조합(네이비+오렌지)은 유지하고 보조 톤/폰트/여백만 정리했습니다.
+9단계(알림) 전에 먼저 진행했습니다. 색 조합(네이비+오렌지)은 유지하고 보조 톤/폰트/여백만 정리했습니다.
 
 - **폰트**: 나눔스퀘어라운드(Regular/Bold)를 `assets/fonts/`에 TTF로 번들링하고 `App.tsx`에서 `expo-font`의 `useFonts`로 로드합니다. 로드가 끝나기 전에는 로딩 스피너만 보이고, 끝나면 전체 화면에 적용됩니다(라이선스: OFL-1.1, `assets/fonts/LICENSE.txt` 참고).
   - 커스텀 폰트에 `fontWeight`를 같이 주면 기기에 따라 가짜 볼드가 겹쳐 보일 수 있어서, 굵기는 `fontWeight` 대신 `theme.ts`의 `fonts.regular`/`fonts.bold` 두 폰트 패밀리로 표현합니다.

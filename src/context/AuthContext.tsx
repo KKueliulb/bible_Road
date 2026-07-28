@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserDoc } from '../types/models';
-import { createUser, findUserByNickname, getUserById, isNicknameTaken, updateUser } from '../services/usersService';
-import { registerForPushNotifications } from '../services/notificationsService';
+import { createUser, findUserByNickname, getUserById, isNicknameTaken } from '../services/usersService';
+import { hasReadToday } from '../services/readingService';
+import { refreshDailyReminder } from '../services/notificationsService';
 
 const SESSION_KEY = 'bible_road_user_id';
 
@@ -90,23 +91,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (userData) setUser(userData);
   }
 
-  // 로그인/세션 복원 직후 푸시 알림 권한을 요청하고 토큰을 등록한다. Expo Go나 시뮬레이터,
-  // 권한 거부 시에는 registerForPushNotifications가 null을 반환하므로 아무 것도 하지 않는다.
+  // 로그인/세션 복원 직후, 그리고 "읽었어요!"로 lastReadAt이 바뀔 때마다 매일 리마인더를 다시
+  // 계산해 예약한다(오늘 이미 읽었으면 오늘 몫은 건너뛰고 내일로). 서버 없는 로컬 알림이라
+  // 권한을 거부했거나 실기기가 아니면 조용히 아무 것도 하지 않는다.
   useEffect(() => {
-    if (!userId) return;
-    let isCancelled = false;
-
-    registerForPushNotifications().then((token) => {
-      if (isCancelled || !token) return;
-      updateUser(userId, { expoPushToken: token }).catch(() => {
-        // 토큰 저장 실패는 부가 기능이라 조용히 무시
-      });
+    if (!userId || !user) return;
+    refreshDailyReminder(user.dailyReminderTime, hasReadToday(user.lastReadAt)).catch(() => {
+      // 리마인더 예약 실패는 부가 기능이라 조용히 무시
     });
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [userId]);
+  }, [userId, user?.lastReadAt, user?.dailyReminderTime]);
 
   const value = useMemo(
     () => ({ isLoading, userId, user, signup, login, logout, refreshUser }),

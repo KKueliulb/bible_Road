@@ -27,8 +27,7 @@ export interface UserDoc {
   extraChaptersRepaid: number;
   graceDaysLeft: number;
   rereadCount: number;
-  /** expo-notifications가 발급한 Expo push token(`ExponentPushToken[...]`). Cloud Functions가 Expo Push API로 알림을 보낼 때 쓴다. 로그인 기기가 없거나 권한을 거부했으면 null. */
-  expoPushToken: string | null;
+  /** 매일 리마인더 로컬 알림을 예약할 시각("HH:mm"). 현재는 변경 UI가 없어 항상 기본값(20:00)이다. */
   dailyReminderTime: string;
   createdAt: number;
   /** 온보딩에서 고른 시작 성경(구약/신약). 완독 시 다음 책 자동 진행 순서와 로드맵 번호 표시에 쓰인다. */
