@@ -150,8 +150,12 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
         userUpdates.currentBookId = nextBook.id;
         userUpdates.currentTestament = nextBook.testament;
         userUpdates.currentChapter = 0;
-        // 자동으로 다음 책으로 넘어갈 때도 "함께 읽는 중" 목록에 바로 보이도록 참여 등록해준다.
-        await joinBookParticipants(nextBook.id, userId, user.nickname);
+        // "함께 읽는 중" 목록/참여인원 수가 지금 그 책을 읽고 있는 사람만 정확히 반영하도록,
+        // 완독한 책의 참여기록은 빼고 새 책에만 등록한다(다른 기기에도 onSnapshot으로 실시간 반영됨).
+        await Promise.all([
+          removeParticipant(book.id, userId),
+          joinBookParticipants(nextBook.id, userId, user.nickname),
+        ]);
       }
       // 66권 전체 완독(다음 책 없음)은 9단계(onFullBibleCompleted) 범위라 여기서는 그대로 둔다.
     } else {

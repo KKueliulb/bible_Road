@@ -106,7 +106,7 @@ src/
 - 모든 노드에 참여인원 수 + 전체 장수가 항상 표시됩니다(진입 가능 여부와 무관).
 - **미시작(not_started) 상태인 책은 눌러도 들어갈 수 없습니다** — 안내 메시지만 뜨고 읽기 화면으로 이동하지 않습니다. 진행중/완독 상태인 책만 진입 가능합니다.
 - 진입 가능한 노드를 누르면 `bookParticipants/{bookId}/members/{userId}`에 자동으로 참여 등록되고, 읽기 화면으로 이동합니다.
-- 책을 완독하면 그 책이 `currentBookId`였을 경우 자동으로 다음 책(정경 순서상 다음)으로 `currentBookId`/`currentTestament`가 이동하고, 그 다음 책의 `bookParticipants`에도 자동으로 참여 등록됩니다(수동으로 다시 눌러 들어가지 않아도 "함께 읽는 중" 목록에 바로 보입니다).
+- 책을 완독하면 그 책이 `currentBookId`였을 경우 자동으로 다음 책(정경 순서상 다음)으로 `currentBookId`/`currentTestament`가 이동합니다. 이때 **완독한 책의 참여기록은 제거되고 새 책에만 등록**됩니다 — "함께 읽는 중" 목록/참여인원 수는 항상 "지금 그 책을 읽고 있는 사람"만 정확히 반영하며, 실시간 구독(onSnapshot) 덕분에 다른 사람 화면에도 즉시 반영됩니다.
 - 로드맵 화면은 포커스를 받을 때마다(읽기 화면에서 돌아올 때 등) 진행 상태와 참여인원 수를 다시 불러옵니다. 처음 열릴 때 한 번만 불러오면 책을 완독하고 돌아와도 화면이 갱신되지 않는 문제가 있었습니다.
 
 ## 읽기 화면 (5단계)
@@ -144,7 +144,7 @@ src/
   - 초기화되는 것: 모든 책의 진행 기록(`bookProgress`), `currentBookId`/`currentTestament`/`currentChapter`(창세기 1장으로), 전체 진행률, 밀린 장수(`overdueChapters`/`extraChaptersRepaid`), 유예일수(`graceDaysLeft`), 마지막 읽은 시각(`lastReadAt`/`lastExtraReadAt`).
   - 유지되는 것: **연속 읽기(streakDays)는 초기화하지 않습니다.**
   - `rereadCount`(다시 읽기 횟수)가 1 증가합니다.
-  - 진행중이던 책(`currentBookId`)의 `bookParticipants` 참여기록만 제거합니다. 이미 완독했거나 지나온 다른 책들의 참여기록은 실제로 함께 읽었던 이력이므로 그대로 남습니다.
+  - 진행중이던 책(`currentBookId`)의 `bookParticipants` 참여기록을 제거합니다(정상적인 진행 과정에서는 책이 넘어갈 때마다 이전 책 참여기록이 이미 제거되므로, 이 시점에 남아있는 건 현재 책뿐입니다).
 - **로그아웃**: 확인 Alert 후 세션(AsyncStorage)을 지우고 로그인 화면으로 돌아갑니다.
 
 ## 다음 단계
