@@ -17,7 +17,7 @@ export default function RankingListRow({ entry, rank, isMe, elevated }: Props) {
   return (
     <View style={[styles.row, isMe && styles.rowMe, elevated && styles.rowElevated]}>
       <Text style={[styles.rank, isMe && styles.textMe]}>{rank}</Text>
-      <Avatar createdAt={entry.createdAt} nickname={entry.nickname} size={32} />
+      <Avatar nickname={entry.nickname} size={32} />
       <View style={styles.nameColumn}>
         <Text style={[styles.nickname, isMe && styles.textMe]} numberOfLines={1}>
           {entry.nickname}

@@ -12,7 +12,6 @@ export interface RankingEntry {
   nickname: string;
   name: string;
   totalProgressPercent: number;
-  createdAt: number;
   rereadCount: number;
   currentBookName: string;
   currentChapter: number;
@@ -99,7 +98,6 @@ export function subscribeToRanking(onChange: (ranking: RankingEntry[]) => void):
         nickname: data.nickname,
         name: data.name,
         totalProgressPercent: data.totalProgressPercent,
-        createdAt: data.createdAt,
         rereadCount: data.rereadCount,
         currentBookName: currentBook?.name ?? '',
         currentChapter: data.currentChapter,

@@ -104,7 +104,7 @@ async function seedTestRanking() {
       hasOnboarded: true,
       fcmToken: null,
       dailyReminderTime: '20:00',
-      // 가입 시각을 넓게 흩어놓아야 아바타 배경색(createdAt 기반 16진수)이 사람마다 다르게 나온다.
+      // 실제처럼 보이도록 가입 시각을 최근 2년 내로 무작위로 흩어 넣는다.
       createdAt: Date.now() - randomInt(0, 730 * 86400000),
     };
 

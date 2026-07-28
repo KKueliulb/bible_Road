@@ -52,7 +52,7 @@ export default function MyPageScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.avatarWrap}>
-        <Avatar createdAt={user.createdAt} nickname={user.nickname} size={80} />
+        <Avatar nickname={user.nickname} size={80} />
       </View>
       <Text style={styles.name}>{user.name}</Text>
       <Text style={styles.nickname}>@{user.nickname}</Text>
