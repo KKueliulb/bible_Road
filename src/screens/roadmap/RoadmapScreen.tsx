@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RoadmapStackParamList } from '../../navigation/RoadmapStack';
 import { useAuth } from '../../context/AuthContext';
@@ -38,12 +39,16 @@ export default function RoadmapScreen({ navigation }: Props) {
     [progressMap, user?.currentBookId]
   );
 
-  useEffect(() => {
-    if (!userId) return;
-    getBookProgressMap(userId)
-      .then(setProgressMap)
-      .catch(() => setError('진행 상태를 불러오지 못했어요.'));
-  }, [userId]);
+  // 읽기 화면에서 완독/진행 후 로드맵으로 돌아올 때마다 최신 상태를 다시 불러온다.
+  // (한 번만 불러오면 완독한 책이 계속 예전 상태로 보이는 문제가 있었음)
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      getBookProgressMap(userId)
+        .then(setProgressMap)
+        .catch(() => setError('진행 상태를 불러오지 못했어요.'));
+    }, [userId])
+  );
 
   useEffect(() => {
     let isCancelled = false;
@@ -67,23 +72,26 @@ export default function RoadmapScreen({ navigation }: Props) {
   }, [testament]);
 
   // 노드에 참여인원 수를 표시하기 위해, 잠긴(미시작) 책 포함 모든 책의 참여자 수를 가져온다.
-  // (테스타먼트 전환 시 한 번씩 갱신 — 실시간까지는 필요 없다고 판단)
-  useEffect(() => {
-    if (books.length === 0) return;
-    let isCancelled = false;
+  // 테스타먼트 전환 시뿐 아니라, 읽기 화면에서 돌아와 화면이 다시 포커스될 때도 갱신한다
+  // (그렇지 않으면 책을 완독해 다음 책으로 자동 참여해도 숫자가 갱신되지 않음).
+  useFocusEffect(
+    useCallback(() => {
+      if (books.length === 0) return;
+      let isCancelled = false;
 
-    Promise.all(books.map((book) => getParticipants(book.id).then((list) => [book.id, list.length] as const)))
-      .then((entries) => {
-        if (!isCancelled) setParticipantCounts(Object.fromEntries(entries));
-      })
-      .catch(() => {
-        // 참여인원 수 표시는 부가 정보라 실패해도 화면을 막지 않음
-      });
+      Promise.all(books.map((book) => getParticipants(book.id).then((list) => [book.id, list.length] as const)))
+        .then((entries) => {
+          if (!isCancelled) setParticipantCounts(Object.fromEntries(entries));
+        })
+        .catch(() => {
+          // 참여인원 수 표시는 부가 정보라 실패해도 화면을 막지 않음
+        });
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [books]);
+      return () => {
+        isCancelled = true;
+      };
+    }, [books])
+  );
 
   const inProgressBook = books.find((book) => getStatus(book) === 'in_progress') ?? null;
 
