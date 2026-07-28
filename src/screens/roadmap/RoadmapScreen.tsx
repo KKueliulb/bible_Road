@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Book, getBookById, getBooksByTestament } from '../../services/booksService';
 import { getBookProgressMap } from '../../services/bookProgressService';
 import { joinBookParticipants, Participant, subscribeToParticipants } from '../../services/participantsService';
-import { computeTodayGoalRange, hasReadToday } from '../../services/readingService';
+import { computeLiveStreakDays, computeTodayGoalRange, hasReadToday } from '../../services/readingService';
 import { BookProgressDoc, BookProgressStatus, Testament } from '../../types/models';
 import HomeTopBar from '../../components/roadmap/HomeTopBar';
 import TodayGoalFloatingBar from '../../components/roadmap/TodayGoalFloatingBar';
@@ -145,7 +145,7 @@ export default function RoadmapScreen({ navigation }: Props) {
   return (
     <View style={styles.root}>
       <HomeTopBar
-        streakDays={user?.streakDays ?? 0}
+        streakDays={user ? computeLiveStreakDays(user) : 0}
         rereadCount={user?.rereadCount ?? 0}
         nickname={user?.nickname ?? ''}
       />

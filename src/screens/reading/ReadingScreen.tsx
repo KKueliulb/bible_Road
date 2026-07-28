@@ -9,6 +9,7 @@ import { Participant, subscribeToParticipants } from '../../services/participant
 import { hasCheeredToday, sendCheer } from '../../services/cheerLogsService';
 import {
   computeLiveOverdueChapters,
+  computeLiveStreakDays,
   computeTodayGoalRange,
   hasReadToday,
   recordChaptersRead,
@@ -188,6 +189,7 @@ export default function ReadingScreen({ route }: Props) {
         nextEnd={nextEnd}
         overdueChapters={liveOverdueChapters}
         isCompleted={isCompleted}
+        streakDays={computeLiveStreakDays(user)}
       />
       <StreakWarningBanner graceDaysLeft={user.graceDaysLeft} overdueChapters={liveOverdueChapters} />
       <ChapterChecklist totalChapters={book.totalChapters} chaptersRead={progress?.chaptersRead ?? []} />

@@ -131,13 +131,15 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
   - **N장 더 읽었어요!**: **밀린 장수(overdueChapters)가 0보다 클 때만** 아예 나타나는 별도 버튼입니다(0이면 버튼 자체가 안 보임). 가입 첫날에는 밀린 게 없으니 뜨지 않습니다. 오늘 아직 안 썼으면 활성화되고, 하루에 한 번만 쓸 수 있습니다(`user.lastExtraReadAt` 기준, 스트릭과는 무관). 선택 가능한 장수는 1장부터 `min(밀린 장수, 책에 남은 장수)`까지 전부 고를 수 있습니다(짝수 포함).
 - **스트릭/유예(streakDays/graceDaysLeft)**: 책 단위가 아니라 유저 전역 기준이고, **"읽었어요!"에서만** 갱신됩니다("N장 더 읽었어요!"는 밀린 걸 갚는 것뿐이라 스트릭에 영향 없음). 어제 이어서 읽으면 연속 기록 +1, 하루 이상 건너뛰면 남은 유예일로 커버를 시도하고, 유예를 초과하면 스트릭이 1로 리셋됩니다. 9단계(Cloud Functions)에서 매일 자정 서버 로직으로 보완할 예정이라, 지금은 "읽었어요"를 누르는 시점에만 클라이언트에서 계산합니다.
   - 가입 직후(`graceDaysLeft` 기본값 2, `overdueChapters` 0)는 첫 "읽었어요!" 이후와 동일한 상태라, **가입 첫날에는 아래 스트릭 경고 배너가 뜨지 않습니다.**
-- **스트릭 경고 배너(`StreakWarningBanner`)**: 유예일이 2일 미만이거나 밀린 장수가 있으면 읽기 화면 상단에 `🔥 끊어진 불꽃을 다시 태울 수 있는 기회! {n}일 남았습니다!`(유예 소진 시에는 `오늘까지입니다!`)를 표시합니다.
-- **밀린 장수 계산 (`computeLiveOverdueChapters`)**: 세 요소를 더해서 화면을 열 때마다 그 자리에서 다시 계산합니다.
+  - **유예(대개 2일)를 넘도록 계속 안 읽으면(`isGraceExpired`)**, 다음 "읽었어요!"를 누르기 전이라도 **화면에는 이미 스트릭이 0으로, 밀린 장수는 0으로 표시됩니다**(`computeLiveStreakDays`/`computeLiveOverdueChapters`가 화면을 열 때마다 그 자리에서 판단). 실제 Firestore 값은 그대로 있다가, 다음 "읽었어요!"를 누르는 순간 `recordChaptersRead`가 스트릭을 1로 리셋하고 그동안의 공백을 원금에 확정합니다.
+- **스트릭 경고 배너(`StreakWarningBanner`)**: 밀린 장수가 있을 때만 읽기 화면 상단에 `🔥 끊어진 불꽃을 다시 태울 수 있는 기회! {n}일 남았습니다!`(유예 소진 시에는 `오늘까지입니다!`)를 표시합니다. 밀린 장수가 0이 되면(다 따라잡았든, 유예를 넘겨 화면상 정리됐든) 곧바로 사라집니다.
+- **밀린 장수 계산 (`computeLiveOverdueChapters`)**: 유예를 넘기지 않았다면 세 요소를 더해서 화면을 열 때마다 그 자리에서 다시 계산합니다.
   1. **원금(`overdueChapters`)**: "읽었어요!"를 눌렀는데 그 사이에 공백(안 읽은 날)이 있었으면, 그 공백만큼만 그 순간에 확정되어 누적됩니다. **"읽었어요!"를 눌러도 공백이 없었다면(연속으로 읽는 정상 케이스) 원금은 절대 안 바뀝니다.**
   2. **진행중인 미확정 공백**: 마지막으로 "읽었어요!"를 누른 날(또는 한 번도 안 눌렀으면 가입일) 이후 아직 확정 안 된 공백을 실시간으로 계산해 더합니다 — 그래서 액션 없이 며칠이 지나도 화면엔 정확히 늘어난 값이 보입니다.
   3. **상환액(`extraChaptersRepaid`)**: "N장 더 읽었어요!"로 지금까지 갚은 누적 장수를 뺍니다. **이 버튼만이 밀린 장수를 줄일 수 있습니다.**
   
   즉 **"읽었어요!"는 밀린 장수를 늘리지도 줄이지도 않고(그 자리에서 공백을 확정만 시킴), 오직 "N장 더 읽었어요!"만 실제로 줄입니다.**
+- **읽기 화면 "오늘의 목표" 카드**: 오른쪽에 🔥 아이콘과 현재 스트릭(연속 읽기 일수)을 함께 보여줍니다(`TodayGoalCard`의 `streakDays` prop, `computeLiveStreakDays`로 계산).
 - 화이팅 버튼은 `cheerLogs/{fromUserId_toUserId_date}` 문서 존재 여부로 하루 1회 제한을 클라이언트에서 체크합니다. 실제 푸시 알림(FCM)은 9단계에서 Cloud Functions로 붙일 예정입니다.
 - **홈으로 나가는 뒤로가기 버튼은 화살표(`<`)만 표시**됩니다(`headerBackButtonDisplayMode: 'minimal'`) — iOS에서 화살표 옆에 이전 화면 제목이 함께 붙어 나오던 것을 없앴습니다.
 
@@ -165,7 +167,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 ## 마이페이지 (7단계)
 
 - **프로필 사진**: 아바타를 누르면 갤러리에서 사진을 골라(`expo-image-picker`) Firebase Storage(`profilePhotos/{userId}.jpg`)에 업로드하고 `users/{userId}.photoURL`에 저장합니다. 사진이 없으면(또는 로드에 실패하면) 닉네임 첫 글자 아바타가 대신 표시됩니다(랭킹 화면도 동일).
-  - 로컬 이미지를 Blob으로 변환할 때 React Native의 `fetch(uri).blob()`은 종종 깨지거나 빈 Blob을 만들어(권한 허용과 업로드 자체는 되지만 사진이 실제로는 바뀌지 않는 것처럼 보이는 원인) Firebase가 RN 환경에 공식 권장하는 `XMLHttpRequest` 기반 변환 방식으로 교체했습니다(`profilePhotoService.ts`).
+  - React Native에서 로컬 이미지를 Blob으로 만들어(`fetch(uri).blob()`, 이후 `XMLHttpRequest` 방식으로도) 업로드하면 이 프로젝트의 Firebase SDK 버전 조합에서 `Firebase Storage: An unknown error occurred (storage/unknown)`로 실패하는 걸 실제 기기 테스트에서 확인했습니다. Blob 대신 `expo-file-system`의 `File.arrayBuffer()`로 파일을 직접 읽어 `ArrayBuffer`를 `uploadBytes`에 넘기는 방식으로 교체해 Blob 변환 자체를 우회했습니다(`profilePhotoService.ts`).
   - 같은 경로(`profilePhotos/{userId}.jpg`)에 덮어써서 다운로드 URL 문자열이 이전과 동일해질 수 있는 경우를 대비해, 매번 값이 달라지는 쿼리 파라미터(`&_v=타임스탬프`)를 붙여 반환합니다 — RN `<Image>`가 이전 사진을 캐시로 계속 보여주는 것을 방지합니다.
   - `Avatar` 컴포넌트는 이미지 로드가 실패하면(`onError`) 자동으로 닉네임 이니셜로 폴백하고, `photoURL`이 바뀌면 이전 실패 상태를 지우고 다시 시도합니다.
   - 업로드 실패 시 실제 오류 메시지를 화면에 함께 보여주도록 바꿨습니다(콘솔에도 `console.error`로 남깁니다) — 원인 파악용입니다. Storage를 아직 콘솔에서 생성하지 않았거나 보안 규칙이 막고 있으면 이 메시지로 확인할 수 있습니다.

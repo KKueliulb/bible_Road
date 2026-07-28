@@ -13,7 +13,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 import { changeNickname, updateUser } from '../../services/usersService';
 import { uploadProfilePhoto } from '../../services/profilePhotoService';
-import { computeLiveOverdueChapters } from '../../services/readingService';
+import { computeLiveOverdueChapters, computeLiveStreakDays } from '../../services/readingService';
 import { NICKNAME_CHANGE_LIMIT } from '../../constants/profileConfig';
 import Avatar from '../../components/common/Avatar';
 import { colors, radius, spacing, typography } from '../../constants/theme';
@@ -117,7 +117,7 @@ export default function MyPageScreen() {
         </View>
         <View style={styles.statRow}>
           <Text style={styles.statLabel}>연속 읽기</Text>
-          <Text style={styles.statValue}>{user.streakDays}일</Text>
+          <Text style={styles.statValue}>{computeLiveStreakDays(user)}일</Text>
         </View>
         <View style={styles.statRow}>
           <Text style={styles.statLabel}>밀린 장수</Text>

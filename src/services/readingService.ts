@@ -32,6 +32,18 @@ function ongoingGapMissedDays(lastReadAt: number | null, createdAt: number, now:
 }
 
 /**
+ * 유예일수(graceDaysLeft)를 넘도록 계속 안 읽었는지 여부. 이 상태가 되면 다음 "읽었어요!" 때
+ * recordChaptersRead가 스트릭을 리셋하고 공백을 원금에 확정하지만, 그 전까지도(사용자가 앱을
+ * 다시 열었을 때) 화면에는 이미 끊긴 스트릭/밀린 장수를 실시간으로 보여줘야 해서 별도로 계산한다.
+ */
+export function isGraceExpired(
+  user: Pick<UserDoc, 'lastReadAt' | 'createdAt' | 'graceDaysLeft'>,
+  now: number = Date.now()
+): boolean {
+  return ongoingGapMissedDays(user.lastReadAt, user.createdAt, now) > user.graceDaysLeft;
+}
+
+/**
  * 밀린 장수 = 원금(overdueChapters, "읽었어요!"가 공백을 확정할 때만 누적)
  *           + 아직 확정 안 된 진행중 공백(실시간 계산)
  *           - N장 더 읽었어요로 상환한 누적 장수(extraChaptersRepaid).
@@ -39,14 +51,26 @@ function ongoingGapMissedDays(lastReadAt: number | null, createdAt: number, now:
  * "읽었어요!"는 원금을 절대 깎지 않고(그 자리에서 공백을 새로 확정할 때만 "늘릴" 수 있음),
  * "N장 더 읽었어요!"는 상환액만 늘려서 이 합계를 줄인다 — 그래서 "읽었어요"를 눌러도 이 숫자는 안 바뀐다.
  * 화면을 열 때마다 이 함수로 그 자리에서 다시 계산해야 한다(저장된 값만 보면 액션 없이는 안 늘어난 것처럼 보임).
+ *
+ * 유예를 넘도록(대개 이틀) 방치하면 스트릭이 이미 끊긴 것으로 보고 밀린 장수 알림도 0으로
+ * 표시한다(더 쌓아봐야 어차피 다음 "읽었어요!"에서 스트릭과 함께 정리되기 때문).
  */
 export function computeLiveOverdueChapters(
-  user: Pick<UserDoc, 'overdueChapters' | 'lastReadAt' | 'createdAt' | 'extraChaptersRepaid'>,
+  user: Pick<UserDoc, 'overdueChapters' | 'lastReadAt' | 'createdAt' | 'extraChaptersRepaid' | 'graceDaysLeft'>,
   now: number = Date.now()
 ): number {
+  if (isGraceExpired(user, now)) return 0;
   const ongoingGapChapters = ongoingGapMissedDays(user.lastReadAt, user.createdAt, now) * DAILY_CHAPTER_GOAL;
   const repaid = user.extraChaptersRepaid ?? 0;
   return Math.max(0, user.overdueChapters + ongoingGapChapters - repaid);
+}
+
+/** 유예를 넘도록 방치하면 다음에 읽기 전까지는 화면에 스트릭을 0으로 보여준다. */
+export function computeLiveStreakDays(
+  user: Pick<UserDoc, 'streakDays' | 'lastReadAt' | 'createdAt' | 'graceDaysLeft'>,
+  now: number = Date.now()
+): number {
+  return isGraceExpired(user, now) ? 0 : user.streakDays;
 }
 
 /**

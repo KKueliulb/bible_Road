@@ -8,7 +8,8 @@ interface Props {
 }
 
 export default function StreakWarningBanner({ graceDaysLeft, overdueChapters }: Props) {
-  if (graceDaysLeft >= 2 && overdueChapters === 0) {
+  // 밀린 장수가 없으면(다 따라잡았거나, 유예를 넘겨 이미 정리된 경우 모두 포함) 안내를 띄우지 않는다.
+  if (overdueChapters === 0) {
     return null;
   }
 
