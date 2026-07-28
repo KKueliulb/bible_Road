@@ -83,7 +83,7 @@ src/
     roadmap/                 # HomeTopBar, TodayGoalFloatingBar, TestamentDropdown, RoadmapNode(그라데이션+병합된 참여자 카드 포함), RoadmapConnector
     reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList
     ranking/                 # RankingPodium(TOP 3 단상), RankingListRow, ProgressBar
-    mypage/                  # HelpModal (스트릭/유예/밀린 장수/회독/화이팅/알림 FAQ)
+    mypage/                  # HelpModal (연속 불꽃/유예/밀린 장수/회독/화이팅/알림 FAQ)
   context/AuthContext.tsx    # 로그인 상태, 세션 복원, refreshUser
   services/
     firebase.ts              # Firebase 초기화 (Firestore)
@@ -175,7 +175,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 - **닉네임 변경**: 평생 `NICKNAME_CHANGE_LIMIT`(기본 3회)까지만 가능합니다. 다른 유저와 중복되면 변경할 수 없고, 횟수를 다 쓰면 입력창 자체가 비활성화됩니다.
 - **로그아웃**: 확인 Alert 후 세션(AsyncStorage)을 지우고 로그인 화면으로 돌아갑니다.
 - ~~처음부터 다시 읽기(수동 초기화) 버튼~~은 없앴습니다. 아래 "회독(다시 읽기) 자동화"를 참고하세요.
-- **도움말**: 로그아웃 버튼 위에 "❓ 도움말" 버튼을 누르면 스트릭/유예/밀린 장수/회독/화이팅/알림/로드맵 순서 같은 핵심 규칙을 Q&A 형식으로 정리한 모달(`HelpModal`)이 뜹니다.
+- **도움말**: 로그아웃 버튼 위에 "❓ 도움말" 버튼을 누르면 연속 불꽃/유예/밀린 장수/회독/화이팅/알림/로드맵 순서 같은 핵심 규칙을 Q&A 형식으로 정리한 모달(`HelpModal`)이 뜹니다.
 
 ### 회독(다시 읽기) 자동화
 
@@ -190,7 +190,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 ## 온보딩 (8단계)
 
 - 회원가입 → 로그인 직후, **`hasOnboarded`가 명시적으로 `false`인 유저에게만** 표시됩니다. 온보딩 도입 전에 가입한 기존 유저는 이 필드 자체가 없어(`undefined`) 자동으로 건너뛰고 바로 홈으로 들어갑니다(진행 상황이 리셋되지 않습니다).
-- **여러 장면(슬라이드)으로 앱 사용법을 먼저 소개**합니다(`INTRO_SLIDES`, 화면 상단 점으로 진행 표시): 환영 인사 → 로드맵(완독/진행중 색 구분, 자동 진행) → 스트릭/유예 → 랭킹/화이팅 → 알림, 순서로 "다음" 버튼을 눌러 하나씩 넘어갑니다.
+- **여러 장면(슬라이드)으로 앱 사용법을 먼저 소개**합니다(`INTRO_SLIDES`, 화면 상단 점으로 진행 표시): 환영 인사 → 로드맵(완독/진행중 색 구분, 자동 진행) → 연속 불꽃/유예 → 랭킹/화이팅 → 알림, 순서로 "다음" 버튼을 눌러 하나씩 넘어갑니다.
 - 마지막 장면에서 **"구약부터" / "신약부터"** 중 하나를 고르면 온보딩이 끝납니다.
   - 구약부터(기본값): 창세기(1)~말라기(39)~마태복음(40)~요한계시록(66), 정경 순서 그대로.
   - 신약부터: 마태복음(1)~요한계시록(27)~창세기(28)~말라기(66) — 신약을 앞으로 당겨서 재배열.
