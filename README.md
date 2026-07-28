@@ -2,7 +2,7 @@
 
 교회 청년부 대상 성경 통독 습관 앱. Expo(React Native) + Firebase(Firestore/FCM) 기반.
 
-> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~8단계 + 10단계 일부 (프로젝트 셋업 / 정적 데이터 시딩 / 인증 / 홈 로드맵 / 읽기 화면 / 랭킹 / 마이페이지 / 온보딩 / 디자인 폴리싱)**. 9단계(Cloud Functions·푸시 알림)는 아직입니다.
+> 개발은 설계 문서의 11단계 로드맵을 단계별로 나눠 진행합니다. 현재 완료된 범위: **1~9단계 + 10단계 일부 (프로젝트 셋업 / 정적 데이터 시딩 / 인증 / 홈 로드맵 / 읽기 화면 / 랭킹 / 마이페이지 / 온보딩 / Cloud Functions·푸시 알림 / 디자인 폴리싱)**. 11단계(테스트/배포)는 아직입니다.
 
 ## 시작하기
 
@@ -13,6 +13,8 @@ npm start
 ```
 
 `npm start` 실행 후 터미널에 뜨는 QR코드를 Expo Go 앱으로 스캔하거나 `a`(Android) / `i`(iOS) / `w`(Web) 키로 각 플랫폼에서 실행합니다.
+
+> **⚠️ 푸시 알림은 Expo Go에서 테스트할 수 없습니다.** Expo Go는 SDK 버전과 무관하게 원격 푸시(FCM)를 지원하지 않습니다. 푸시 알림을 제외한 나머지 기능은 지금처럼 Expo Go로 계속 테스트할 수 있고, 푸시까지 확인하려면 아래 "푸시 알림" 섹션의 EAS Build(Android 내부 배포)를 사용하세요.
 
 ## Firebase 설정
 
@@ -92,6 +94,7 @@ src/
     participantsService.ts    # bookParticipants/{bookId}/members 조회/등록/삭제
     cheerLogsService.ts        # 화이팅 하루 1회 제한 체크 + 전송
     readingService.ts          # "읽었어요/N장 더 읽었어요" 핵심 로직 + 66권 완독 시 자동 회독 처리 (아래 참고)
+    notificationsService.ts     # 알림 권한 요청 + Expo push token 발급 (registerForPushNotifications)
   data/books.ts               # 66권 정적 데이터 + 개인화된 진행 순서 계산(getPersonalizedSequence)
   scripts/
     seedBooks.ts               # books 컬렉션 시딩 스크립트 (firebase-admin)
@@ -103,6 +106,8 @@ src/
     readingConfig.ts            # DAILY_CHAPTER_GOAL (하루 기본 목표 장수, 여기서 조정)
     profileConfig.ts             # NICKNAME_CHANGE_LIMIT (닉네임 변경 가능 횟수, 여기서 조정)
 assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OFL-1.1, LICENSE.txt 참고)
+functions/                       # Cloud Functions (매일 리마인더 스케줄 + 화이팅 알림 트리거, 아래 "푸시 알림" 참고)
+eas.json                         # EAS Build 프로필 (preview = Android 내부 배포 apk)
 ```
 
 ## 홈 로드맵 (4단계)
@@ -127,7 +132,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 - **읽었어요! / N장 더 읽었어요!는 완전히 독립적인 하루 1회 액션**입니다. 하나를 눌렀다고 다른 하나가 사라지지 않고, 각자 회색으로 비활성화("오늘 읽음 완료" / "오늘 사용 완료")될 뿐입니다.
   - **읽었어요!**: 오늘 아직 안 눌렀으면 활성화. 누르면 `DAILY_CHAPTER_GOAL`만큼 진행 + 스트릭 갱신(`user.lastReadAt` 기준).
   - **N장 더 읽었어요!**: **밀린 장수(overdueChapters)가 0보다 클 때만** 아예 나타나는 별도 버튼입니다(0이면 버튼 자체가 안 보임). 가입 첫날에는 밀린 게 없으니 뜨지 않습니다. 오늘 아직 안 썼으면 활성화되고, 하루에 한 번만 쓸 수 있습니다(`user.lastExtraReadAt` 기준, 스트릭과는 무관). 선택 가능한 장수는 1장부터 `min(밀린 장수, 책에 남은 장수)`까지 전부 고를 수 있습니다(짝수 포함).
-- **스트릭/유예(streakDays/graceDaysLeft)**: 책 단위가 아니라 유저 전역 기준이고, **"읽었어요!"에서만** 갱신됩니다("N장 더 읽었어요!"는 밀린 걸 갚는 것뿐이라 스트릭에 영향 없음). 어제 이어서 읽으면 연속 기록 +1, 하루 이상 건너뛰면 남은 유예일로 커버를 시도하고, 유예를 초과하면 스트릭이 1로 리셋됩니다. 9단계(Cloud Functions)에서 매일 자정 서버 로직으로 보완할 예정이라, 지금은 "읽었어요"를 누르는 시점에만 클라이언트에서 계산합니다.
+- **스트릭/유예(streakDays/graceDaysLeft)**: 책 단위가 아니라 유저 전역 기준이고, 실제 Firestore 값은 **"읽었어요!"에서만** 갱신됩니다("N장 더 읽었어요!"는 밀린 걸 갚는 것뿐이라 스트릭에 영향 없음). 어제 이어서 읽으면 연속 기록 +1, 하루 이상 건너뛰면 남은 유예일로 커버를 시도하고, 유예를 초과하면 스트릭이 1로 리셋됩니다. 매일 자정 서버가 따로 계산하지 않아도 되도록, 화면에 보여줄 때는 `computeLiveStreakDays`/`computeLiveOverdueChapters`가 그 자리에서 실시간으로 다시 계산합니다(아래 참고).
   - 가입 직후(`graceDaysLeft` 기본값 2, `overdueChapters` 0)는 첫 "읽었어요!" 이후와 동일한 상태라, **가입 첫날에는 아래 스트릭 경고 배너가 뜨지 않습니다.**
   - **유예(대개 2일)를 넘도록 계속 안 읽으면(`isGraceExpired`)**, 다음 "읽었어요!"를 누르기 전이라도 **화면에는 이미 스트릭이 0으로, 밀린 장수는 0으로 표시됩니다**(`computeLiveStreakDays`/`computeLiveOverdueChapters`가 화면을 열 때마다 그 자리에서 판단). 실제 Firestore 값은 그대로 있다가, 다음 "읽었어요!"를 누르는 순간 `recordChaptersRead`가 스트릭을 1로 리셋하고 그동안의 공백을 원금에 확정합니다.
 - **스트릭 경고 배너(`StreakWarningBanner`)**: 밀린 장수가 있을 때만 읽기 화면 상단에 `🔥 끊어진 불꽃을 다시 태울 수 있는 기회! {n}일 남았습니다!`(유예 소진 시에는 `오늘까지입니다!`)를 표시합니다. 밀린 장수가 0이 되면(다 따라잡았든, 유예를 넘겨 화면상 정리됐든) 곧바로 사라집니다.
@@ -138,7 +143,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
   
   즉 **"읽었어요!"는 밀린 장수를 늘리지도 줄이지도 않고(그 자리에서 공백을 확정만 시킴), 오직 "N장 더 읽었어요!"만 실제로 줄입니다.**
 - **읽기 화면 "오늘의 목표" 카드**: 오른쪽에 🔥 아이콘과 현재 스트릭(연속 읽기 일수)을 함께 보여줍니다(`TodayGoalCard`의 `streakDays` prop, `computeLiveStreakDays`로 계산).
-- 화이팅 버튼은 `cheerLogs/{fromUserId_toUserId_date}` 문서 존재 여부로 하루 1회 제한을 클라이언트에서 체크합니다. 실제 푸시 알림(FCM)은 9단계에서 Cloud Functions로 붙일 예정입니다.
+- 화이팅 버튼은 `cheerLogs/{fromUserId_toUserId_date}` 문서 존재 여부로 하루 1회 제한을 클라이언트에서 체크합니다. 이 문서가 생성되면 Cloud Functions가 상대방에게 실제 푸시 알림을 보냅니다(아래 "푸시 알림" 참고).
 - **홈으로 나가는 뒤로가기 버튼은 화살표(`<`)만 표시**됩니다(`headerBackButtonDisplayMode: 'minimal'`) — iOS에서 화살표 옆에 이전 화면 제목이 함께 붙어 나오던 것을 없앴습니다.
 
 ### 개발 중 테스트하기 (책 잠금 / 밀린 장수)
@@ -190,6 +195,42 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 - 이 선택은 `users/{userId}`의 `roadmapStartTestament`에 저장되고, `src/data/books.ts`의 `getPersonalizedSequence`가 이 값을 기준으로 **완독 시 다음 책 자동 진행 순서**를 재배열합니다. 구약/신약 드롭다운으로 각 테스타먼트 안의 책 목록을 보는 것 자체는 그대로 유지됩니다. (로드맵 노드에 개인화 순번을 보여주던 배지는 화면이 치우쳐 보인다는 피드백으로 제거했습니다.)
 - 온보딩 완료 시 `currentTestament`/`currentBookId`/`currentChapter`가 선택한 시작 성경의 1번 책으로 설정되고 `hasOnboarded: true`로 바뀝니다. 이후 다시 온보딩 화면으로 돌아오지 않습니다(변경하려면 아직 별도 기능이 없습니다).
 
+## 푸시 알림 (9단계)
+
+Expo Go는 SDK 버전과 무관하게 원격 푸시(FCM)를 지원하지 않아서, 이 단계부터는 **EAS Build로 만든 Android APK**로만 실제 푸시를 확인할 수 있습니다. 그래서 이 단계에서 Expo SDK를 54 → 57(최신)로 올리고 EAS Build를 붙였습니다 — SDK 버전 자체는 Expo Go 지원 여부와 무관하지만, 어차피 Expo Go를 벗어나야 하는 김에 최신 SDK로 맞췄습니다.
+
+### 동작 방식
+
+- 로그인/세션 복원 직후(`AuthContext`) `registerForPushNotifications()`(`src/services/notificationsService.ts`)가 알림 권한을 요청하고 **Expo push token**을 발급받아 `users/{userId}.expoPushToken`에 저장합니다. 실기기가 아니거나, 권한을 거부했거나, EAS 프로젝트가 아직 설정 안 됐으면(`projectId` 없음) 조용히 아무 것도 안 합니다(에러를 던지지 않음).
+- 서버 발송은 Firebase Admin SDK로 직접 FCM을 호출하는 대신, **Expo Push API**(`https://exp.host/--/api/v2/push/send`)에 Expo push token으로 요청합니다. Cloud Functions 쪽에 raw FCM 자격증명을 따로 다룰 필요가 없어 훨씬 단순합니다.
+- **매일 리마인더** (`functions/src/index.ts`의 `sendDailyReminders`): 30분마다 실행되는 스케줄 함수가 지금 KST 시각을 30분 단위로 내림한 값과 `users.dailyReminderTime`이 일치하는 유저 중, 오늘 아직 "읽었어요!"를 안 누른 사람에게만 푸시를 보냅니다. (현재 `dailyReminderTime`을 바꾸는 화면은 없어서 모든 유저가 기본값 `"20:00"`입니다.) 서버가 한국 교회 청년부 대상 앱이라는 전제로 **시간대를 KST(UTC+9) 하나로 고정**했습니다(서버 실행 환경의 로컬 타임존에 의존하지 않도록 직접 오프셋 계산).
+- **화이팅 알림** (`sendCheerNotification`): `cheerLogs/{fromUserId_toUserId_date}` 문서가 생성되면(읽기 화면에서 화이팅 버튼) Firestore 트리거가 그 문서 ID에서 두 유저 ID를 파싱해, 받는 사람에게 "OO님이 화이팅을 보냈어요!" 푸시를 보냅니다.
+
+### 설정 방법 (직접 하셔야 하는 부분)
+
+1. **Firebase Blaze(종량제) 요금제로 업그레이드** — Cloud Functions는 Spark(무료) 플랜에서 배포할 수 없습니다. 실사용량이 매우 적어 대부분 무료 한도 안에서 끝납니다.
+2. **Firebase 콘솔 > 프로젝트 설정 > 일반 > Android 앱 추가**(패키지명 `com.bibleroad.app`, `app.json`의 `expo.android.package`와 반드시 일치)를 하면 `google-services.json`을 받을 수 있습니다. 저장소 루트에 그대로 저장하세요(`.gitignore` 처리되어 있어 커밋되지 않습니다). 패키지명을 바꾸고 싶으면 `app.json`에서도 같이 바꾸세요.
+3. **Expo Push 알림용 FCM 서비스 계정 업로드** — Firebase 콘솔 > 프로젝트 설정 > 서비스 계정에서 새 비공개 키를 발급받고, `npx eas credentials` → Android 선택 → Push Notifications: Google Service Account 항목에 업로드하세요. 이 단계를 건너뛰면 push token 발급까지는 되는데 실제 발송이 조용히 실패합니다.
+4. **EAS 프로젝트 연결**: `npx eas init` (또는 `npx eas build:configure`)을 실행하면 `app.json`에 `extra.eas.projectId`가 자동으로 채워집니다. 이게 없으면 `registerForPushNotifications`가 계속 null을 반환합니다.
+5. **Cloud Functions 배포**:
+   ```bash
+   firebase use --add          # 위에서 만든 Firebase 프로젝트 선택 (.firebaserc 생성)
+   cd functions
+   npm install
+   npm run deploy               # 내부적으로 build 후 firebase deploy --only functions 실행
+   ```
+6. **Android 베타 빌드 만들기**:
+   ```bash
+   npm run build:android:preview   # eas build --platform android --profile preview
+   ```
+   빌드가 끝나면 EAS가 apk 다운로드 링크를 줍니다. 그 링크를 테스터들에게 공유하면 Play Store 없이 바로 설치해서 테스트할 수 있습니다(`eas.json`의 `preview` 프로필, `distribution: "internal"`).
+
+### 확인하는 법
+
+- 베타 apk를 설치하고 로그인하면 알림 권한 팝업이 뜹니다. 허용 후 Firestore `users/{userId}.expoPushToken`에 `ExponentPushToken[...]` 값이 채워지는지 확인하세요.
+- 다른 테스터에게 화이팅을 보내보면 몇 초 안에 푸시가 와야 합니다.
+- 매일 리마인더는 최대 30분까지 딜레이가 있을 수 있습니다(스케줄 주기).
+
 ## 디자인 폴리싱 (10단계 일부)
 
 9단계(Cloud Functions·푸시 알림) 전에 먼저 진행했습니다. 색 조합(네이비+오렌지)은 유지하고 보조 톤/폰트/여백만 정리했습니다.
@@ -206,4 +247,4 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 
 ## 다음 단계
 
-Cloud Functions/푸시 알림(9단계)부터 이어서 진행 예정입니다. 자세한 로드맵은 설계 문서를 참고하세요.
+11단계(테스트/배포)부터 이어서 진행 예정입니다. 자세한 로드맵은 설계 문서를 참고하세요.

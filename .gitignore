@@ -37,9 +37,15 @@ yarn-error.*
 # Firebase Admin SDK service account (절대 커밋 금지)
 serviceAccountKey.json
 
+# Firebase Android 앱 설정 (프로젝트마다 다름, Firebase 콘솔에서 직접 받아야 함)
+google-services.json
+
 # typescript
 *.tsbuildinfo
 
 # generated native folders
 /ios
 /android
+
+# Cloud Functions 컴파일 결과물
+functions/lib/
