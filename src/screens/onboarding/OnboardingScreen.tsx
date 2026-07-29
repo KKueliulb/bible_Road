@@ -14,7 +14,7 @@ interface IntroSlide {
 const INTRO_SLIDES: IntroSlide[] = [
   {
     emoji: '📖',
-    title: '성경 통독 로드에 오신 걸 환영해요',
+    title: 'Bible Road에 오신 걸 환영해요',
     description: '매일 목표 장수를 채우며 성경 66권을 끝까지 통독하는 습관을 만들어요.',
   },
   {

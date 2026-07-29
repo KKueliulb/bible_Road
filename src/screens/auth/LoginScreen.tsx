@@ -39,7 +39,7 @@ export default function LoginScreen({ navigation, route }: Props) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.title}>성경 통독</Text>
+      <Text style={styles.title}>Bible Road</Text>
       <Text style={styles.subtitle}>
         {justSignedUp ? '회원가입이 완료됐어요! 닉네임으로 로그인해주세요' : '닉네임으로 로그인해주세요'}
       </Text>

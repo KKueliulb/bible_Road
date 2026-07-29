@@ -41,7 +41,7 @@ export default function SignupScreen({ navigation }: Props) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.title}>성경 통독</Text>
+      <Text style={styles.title}>Bible Road</Text>
       <Text style={styles.subtitle}>본명과 닉네임으로 가입해주세요</Text>
 
       <View style={styles.field}>
