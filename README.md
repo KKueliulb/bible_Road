@@ -262,6 +262,17 @@ npm run deploy:web
 
 > 헷갈리기 쉬운 부분: `npx wrangler deploy`를 프로젝트 루트에서 실행하면 이 웹사이트(`bible-road`)가, `workers/reminder-push` 폴더 안에서 실행하면 발송 서버(`bible-road-reminder-push`)가 배포됩니다. 폴더를 확인하고 실행하세요.
 
+### 자동 배포 (GitHub Actions)
+
+로컬에서 매번 `npm run deploy:web`을 직접 실행하지 않아도 되도록, `.github/workflows/deploy-web.yml`에 GitHub Actions를 만들어뒀습니다. `main` 또는 `claude/app-development-518k3w` 브랜치에 `src/`, `public/`, `assets/`, `app.json` 등 관련 파일이 바뀐 채로 푸시되면 GitHub 서버에서 자동으로 `expo export --platform web` + `wrangler deploy`를 실행합니다(수동 실행은 저장소의 Actions 탭에서 "Run workflow"로도 가능).
+
+**한 번만 설정하면 되는 것** (GitHub 저장소 Settings > Secrets and variables > Actions에서 등록):
+
+1. **`CLOUDFLARE_API_TOKEN`**: https://dash.cloudflare.com/profile/api-tokens 접속 → "Create Token" → **"Edit Cloudflare Workers"** 템플릿 선택 → 생성된 토큰 값을 복사.
+2. **`CLOUDFLARE_ACCOUNT_ID`**: Cloudflare 대시보드 아무 페이지에서나 오른쪽 사이드바(또는 Workers & Pages 개요 페이지)에 표시되는 Account ID 값.
+
+이 두 개를 GitHub 저장소 Secrets에 등록해두면, 그 다음부터는 `git push`만으로 웹사이트가 자동 배포됩니다. (발송 서버 `workers/reminder-push`는 자주 안 바뀌는 편이라 자동화하지 않고 필요할 때만 수동으로 `npx wrangler deploy` 하면 됩니다.)
+
 ## 디자인 폴리싱 (10단계 일부)
 
 9단계(알림) 전에 먼저 진행했습니다. 색 조합(네이비+오렌지)은 유지하고 보조 톤/폰트/여백만 정리했습니다.
