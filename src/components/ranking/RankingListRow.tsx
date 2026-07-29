@@ -61,6 +61,7 @@ const styles = StyleSheet.create({
   },
   nameColumn: {
     flex: 1,
+    minWidth: 0,
     marginRight: spacing.sm,
     gap: 4,
   },

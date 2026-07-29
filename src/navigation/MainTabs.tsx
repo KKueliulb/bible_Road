@@ -23,6 +23,9 @@ export default function MainTabs() {
         tabBarActiveTintColor: colors.orange,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarShowLabel: false,
+        // 웹에서는 세이프에어리어 인셋을 못 받아오면 탭바가 기기 기본값보다 얇아 보여서,
+        // 최소 높이를 직접 지정해 항상 일정 두께 이상을 보장한다.
+        tabBarStyle: { height: 64, paddingTop: 8, paddingBottom: 10 },
       }}
     >
       <Tab.Screen
