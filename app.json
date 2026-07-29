@@ -35,6 +35,12 @@
     ],
     "runtimeVersion": {
       "policy": "appVersion"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "71ebded7-92d1-4847-a1a0-1f8d6cc29aff"
+      }
+    },
+    "owner": "countabou"
   }
 }
