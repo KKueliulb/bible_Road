@@ -292,15 +292,13 @@ npm run deploy:web
 - `eas.json`의 `preview`/`production` 빌드 프로필에 각각 `channel`(`preview`/`production`)을 지정해, 어떤 빌드가 어떤 업데이트 채널을 구독하는지 연결.
 - `package.json`에 `update:preview`/`update:production` 스크립트 추가.
 
-### 남은 수동 작업 (Expo 계정 필요)
+### 진행된 것 / 남은 것
 
-`app.json`의 `updates.url`과 `extra.eas.projectId`는 아직 `REPLACE_WITH_EAS_PROJECT_ID` 플레이스홀더입니다 — 이건 EAS 프로젝트를 실제로 생성해야 나오는 값이라, Expo 계정으로 로그인해야 하는 아래 과정은 직접 진행해야 합니다.
+`eas init`은 이미 실행되어 `app.json`에 실제 `extra.eas.projectId`(`71ebded7-92d1-4847-a1a0-1f8d6cc29aff`)와 `owner`가 채워져 있습니다. `eas build`는 이 값만으로 바로 됩니다.
 
-1. `npx eas login` (Expo 계정 로그인, 없으면 무료 가입)
-2. `npx eas init` — 프로젝트 루트에서 실행하면 EAS 프로젝트를 생성하고 `app.json`의 `extra.eas.projectId`와 `updates.url`을 자동으로 채워줍니다(현재 플레이스홀더를 덮어씁니다).
-3. 이후 최초 빌드: `npm run build:android:preview`(내부 테스트 APK) 또는 `eas build --platform android --profile production`(스토어 제출용 앱 번들).
-4. 이후 JS만 고칠 때마다: `npm run update:preview` 또는 `npm run update:production`.
+- `npm run build:android:preview`(내부 테스트 APK) 또는 `eas build --platform android --profile production`(스토어 제출용 앱 번들)으로 빌드 가능.
+- **OTA 업데이트(`eas update`)는 아직 한 단계 더 필요할 수 있습니다** — `app.json`에 `updates.url` 필드가 없어서(현재 SDK 버전에서 `eas init`이 자동으로 넣어주지 않았습니다), `npx eas update:configure`를 한 번 실행해 채워 넣어야 `npm run update:preview`/`update:production`이 정상 동작합니다. 순수 `eas build`(새 빌드)만 할 거라면 이 단계 없이도 됩니다.
 
 ## 다음 단계
 
-11단계(테스트/배포)부터 이어서 진행 예정입니다. 남은 것: 실제 EAS 프로젝트 생성(`eas init`)과 첫 빌드/스토어 제출은 Expo 계정이 필요해 사용자가 직접 진행해야 합니다. 자세한 로드맵은 설계 문서를 참고하세요.
+11단계(테스트/배포)부터 이어서 진행 중입니다. 남은 것: PWA 웹사이트/웹푸시 발송 서버는 배포 완료(위 "웹(PWA) 알림" 참고), OTA 업데이트 마무리(`eas update:configure`)와 앱스토어/Play 스토어 정식 제출은 아직입니다. 자세한 로드맵은 설계 문서를 참고하세요.
