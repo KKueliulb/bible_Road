@@ -11,8 +11,17 @@
       html,
       body {
         height: 100%;
+        width: 100%;
       }
-      /* These styles disable body scrolling if you are using <ScrollView> */
+      /* These styles disable body scrolling if you are using <ScrollView>, and stop any
+         child content from ever making the page wider than the actual device viewport
+         (which mobile browsers react to by zooming the whole page out, making every bar
+         look thinner). */
+      html,
+      body {
+        overflow-x: hidden;
+        max-width: 100vw;
+      }
       body {
         overflow: hidden;
       }
@@ -20,6 +29,8 @@
       #root {
         display: flex;
         height: 100%;
+        width: 100%;
+        max-width: 100vw;
         flex: 1;
       }
     </style>
