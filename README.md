@@ -262,9 +262,10 @@ npm run deploy:web
 
 > 헷갈리기 쉬운 부분: `npx wrangler deploy`를 프로젝트 루트에서 실행하면 이 웹사이트(`bible-road`)가, `workers/reminder-push` 폴더 안에서 실행하면 발송 서버(`bible-road-reminder-push`)가 배포됩니다. 폴더를 확인하고 실행하세요.
 
-**로딩 속도**: 웹 번들이 약 2MB(RN+Firebase 전체 합본) + 한글 폰트 2개(각 ~1MB)라 첫 방문은 느릴 수 있습니다. 이를 완화하기 위해:
+**로딩 속도**: 웹 번들이 약 2MB(RN+Firebase 전체 합본) + 한글 폰트라 첫 방문은 느릴 수 있습니다. 이를 완화하기 위해:
 - `App.tsx`는 웹에서만 폰트 로딩을 기다리지 않고 즉시 렌더링합니다(시스템 폰트로 먼저 보이다가 폰트가 준비되면 자동 교체). 네이티브는 레이아웃이 튀는 걸 막기 위해 기존대로 로딩을 기다립니다.
 - `public/sw.js`가 JS 번들/폰트/아이콘처럼 파일명에 해시가 붙는 정적 자산을 캐시 우선(cache-first) 전략으로 캐싱합니다. 첫 방문 이후 재방문 시에는 캐시에서 즉시 로드됩니다(배포로 해시가 바뀌면 새 파일을 다시 받아옵니다).
+- 웹은 폰트를 TTF(~1MB×2) 대신 WOFF2(~230KB×2, 동일 글자셋을 무손실 변환)로 로드합니다. 네이티브는 WOFF2를 지원하지 않아 TTF를 그대로 씁니다. `src/hooks/useAppFonts.ts`(네이티브)/`useAppFonts.web.ts`(웹)로 플랫폼별 분기하며, `metro.config.js`에 `woff2`를 asset 확장자로 추가해뒀습니다.
 
 ### 자동 배포 (GitHub Actions)
 
