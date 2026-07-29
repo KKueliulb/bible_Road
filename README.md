@@ -104,6 +104,7 @@ src/
     webPushConfig.ts             # VAPID 공개키 (웹 전용, 아래 "웹(PWA) 알림" 참고)
 public/                          # 웹 빌드 시 그대로 복사되는 정적 파일: index.html(PWA 메타태그), manifest.json, sw.js(서비스워커), 아이콘들
 workers/reminder-push/           # Cloudflare Worker(웹푸시 발송 서버). Expo 앱과 별개의 프로젝트 — 아래 "웹(PWA) 알림" 참고
+wrangler.toml                    # PWA 웹사이트 자체를 배포하는 별도 Worker 설정 (`npm run deploy:web`)
 assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OFL-1.1, LICENSE.txt 참고)
 ```
 
@@ -248,6 +249,18 @@ iOS는 앱스토어에 정식 배포하려면 연 $99 Apple Developer Program이
    ```
    (VAPID 키는 이미 한 쌍 발급해서 전달드렸습니다. 공개키는 `src/constants/webPushConfig.ts`에도 이미 들어가 있습니다.)
 4. `npm install && npx wrangler deploy`
+
+### PWA 웹사이트 배포
+
+위 발송 서버(`bible-road-reminder-push`)와는 **별개의 Cloudflare Worker**로, 실제 사용자가 접속해서 "홈 화면에 추가"할 웹사이트 자체를 배포합니다. 루트의 `wrangler.toml`(Worker 이름: `bible-road`)이 이 배포를 담당합니다 — **`workers/reminder-push` 폴더가 아니라 프로젝트 루트에서** 실행해야 합니다.
+
+```
+npm run deploy:web
+```
+
+이 명령은 `expo export --platform web`으로 `dist/`에 웹 빌드를 만든 뒤, 그 폴더를 그대로 Cloudflare에 정적 사이트로 올립니다(`public/`의 매니페스트·서비스워커·아이콘도 함께 포함됩니다). 배포되면 `https://bible-road.<workers.dev 서브도메인>.workers.dev` 같은 주소가 나오고, 이 주소가 실제 사용자에게 공유할 PWA 주소입니다.
+
+> 헷갈리기 쉬운 부분: `npx wrangler deploy`를 프로젝트 루트에서 실행하면 이 웹사이트(`bible-road`)가, `workers/reminder-push` 폴더 안에서 실행하면 발송 서버(`bible-road-reminder-push`)가 배포됩니다. 폴더를 확인하고 실행하세요.
 
 ## 디자인 폴리싱 (10단계 일부)
 
