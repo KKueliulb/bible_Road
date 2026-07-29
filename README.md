@@ -275,8 +275,15 @@ npm run deploy:web
 
 1. **`CLOUDFLARE_API_TOKEN`**: https://dash.cloudflare.com/profile/api-tokens 접속 → "Create Token" → **"Edit Cloudflare Workers"** 템플릿 선택 → 생성된 토큰 값을 복사.
 2. **`CLOUDFLARE_ACCOUNT_ID`**: Cloudflare 대시보드 아무 페이지에서나 오른쪽 사이드바(또는 Workers & Pages 개요 페이지)에 표시되는 Account ID 값.
+3. **Firebase 설정값 6개** — 로컬 `.env` 파일(gitignore됨)은 이 CI 서버로 안 넘어오기 때문에, 아래 6개를 로컬 `.env`에 있는 값 그대로 GitHub Secrets에도 등록해야 합니다. 안 하면 배포된 사이트에서 Firebase 설정이 비어있는 채로 빌드되어 회원가입/로그인이 응답 없이 멈춥니다.
+   - `EXPO_PUBLIC_FIREBASE_API_KEY`
+   - `EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN`
+   - `EXPO_PUBLIC_FIREBASE_PROJECT_ID`
+   - `EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET`
+   - `EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
+   - `EXPO_PUBLIC_FIREBASE_APP_ID`
 
-이 두 개를 GitHub 저장소 Secrets에 등록해두면, 그 다음부터는 `git push`만으로 웹사이트가 자동 배포됩니다. (발송 서버 `workers/reminder-push`는 자주 안 바뀌는 편이라 자동화하지 않고 필요할 때만 수동으로 `npx wrangler deploy` 하면 됩니다.)
+이 secrets를 다 등록해두면, 그 다음부터는 `git push`만으로 웹사이트가 자동 배포됩니다. (발송 서버 `workers/reminder-push`는 자주 안 바뀌는 편이라 자동화하지 않고 필요할 때만 수동으로 `npx wrangler deploy` 하면 됩니다.)
 
 ## 디자인 폴리싱 (10단계 일부)
 
