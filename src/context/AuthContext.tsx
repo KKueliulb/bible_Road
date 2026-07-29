@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserDoc } from '../types/models';
 import { createUser, findUserByNickname, getUserById, isNicknameTaken } from '../services/usersService';
 import { hasReadToday } from '../services/readingService';
 import { refreshDailyReminder } from '../services/notificationsService';
+import { registerWebPush } from '../services/webPushService';
 
 const SESSION_KEY = 'bible_road_user_id';
 
@@ -93,13 +95,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // 로그인/세션 복원 직후, 그리고 "읽었어요!"로 lastReadAt이 바뀔 때마다 매일 리마인더를 다시
   // 계산해 예약한다(오늘 이미 읽었으면 오늘 몫은 건너뛰고 내일로). 서버 없는 로컬 알림이라
-  // 권한을 거부했거나 실기기가 아니면 조용히 아무 것도 하지 않는다.
+  // 권한을 거부했거나 실기기가 아니면 조용히 아무 것도 하지 않는다. 네이티브 전용 — 웹에는
+  // 이런 로컬 스케줄링 기능이 없어서 아래 Web Push 구독으로 대신한다.
   useEffect(() => {
-    if (!userId || !user) return;
+    if (!userId || !user || Platform.OS === 'web') return;
     refreshDailyReminder(user.dailyReminderTime, hasReadToday(user.lastReadAt)).catch(() => {
       // 리마인더 예약 실패는 부가 기능이라 조용히 무시
     });
   }, [userId, user?.lastReadAt, user?.dailyReminderTime]);
+
+  // 웹(PWA)에서는 로그인 직후 Web Push 구독을 등록해 Firestore에 저장해둔다. 실제 발송은
+  // Cloudflare Worker가 매일 저녁 8시(KST)에 이 구독 목록을 보고 처리한다(아래 "알림" 문서 참고).
+  useEffect(() => {
+    if (!userId || Platform.OS !== 'web') return;
+    registerWebPush(userId).catch(() => {
+      // 웹푸시 등록 실패는 부가 기능이라 조용히 무시
+    });
+  }, [userId]);
 
   const value = useMemo(
     () => ({ isLoading, userId, user, signup, login, logout, refreshUser }),

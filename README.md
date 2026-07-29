@@ -90,6 +90,7 @@ src/
     cheerLogsService.ts        # 화이팅 전송/조회 (하루 1회 제한, 오늘 받은 화이팅 조회)
     readingService.ts          # "읽었어요/N장 더 읽었어요" 핵심 로직 + 66권 완독 시 자동 회독 처리 (아래 참고)
     notificationsService.ts     # 알림 권한 요청 + 매일 리마인더 로컬 알림 예약 (refreshDailyReminder)
+    webPushService.ts           # (웹 전용) Web Push 구독 등록 (registerWebPush)
   data/books.ts               # 66권 정적 데이터 + 개인화된 진행 순서 계산(getPersonalizedSequence)
   scripts/
     seedBooks.ts               # books 컬렉션 시딩 스크립트 (firebase-admin)
@@ -100,6 +101,9 @@ src/
     theme.ts                   # 폰트/spacing/radius/색상/타이포그래피 디자인 토큰 (아래 "디자인 폴리싱" 참고)
     readingConfig.ts            # DAILY_CHAPTER_GOAL (하루 기본 목표 장수, 여기서 조정)
     profileConfig.ts             # NICKNAME_CHANGE_LIMIT (닉네임 변경 가능 횟수, 여기서 조정)
+    webPushConfig.ts             # VAPID 공개키 (웹 전용, 아래 "웹(PWA) 알림" 참고)
+public/                          # 웹 빌드 시 그대로 복사되는 정적 파일: index.html(PWA 메타태그), manifest.json, sw.js(서비스워커), 아이콘들
+workers/reminder-push/           # Cloudflare Worker(웹푸시 발송 서버). Expo 앱과 별개의 프로젝트 — 아래 "웹(PWA) 알림" 참고
 assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OFL-1.1, LICENSE.txt 참고)
 ```
 
@@ -216,6 +220,34 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 ### 확인하는 법
 
 앱에서 알림 권한을 허용하고, 오늘 아직 "읽었어요!"를 누르지 않은 상태로 리마인더 시각(기본 20:00)까지 기다리면 알림이 옵니다. "읽었어요!"를 누른 뒤에는 오늘 알림이 뜨지 않고, 다음날 같은 시각으로 다시 예약된 걸 확인할 수 있습니다.
+
+### 웹(PWA) 알림 (Web Push)
+
+iOS는 앱스토어에 정식 배포하려면 연 $99 Apple Developer Program이 필요합니다. 그 대안으로, 웹앱을 **PWA(홈 화면에 추가)**로 설치하면 Apple 계정 없이도 알림을 받을 수 있도록 만들었습니다. 다만 브라우저에는 네이티브처럼 "서버 없이 로컬에 예약"하는 기능이 아예 없어서, 이 경로만은 작은 서버(Cloudflare Worker, 무료)가 필요합니다.
+
+- **PWA 설치**: `public/manifest.json` + `public/sw.js` + `public/index.html`(매니페스트·apple-touch-icon 링크, 서비스워커 등록 스크립트)로 구성됩니다. 사용자가 사파리/크롬에서 사이트 접속 후 "홈 화면에 추가"를 하면 일반 앱처럼 아이콘이 생기고 전체 화면으로 실행됩니다.
+- **구독 등록**: `src/services/webPushService.ts`의 `registerWebPush(userId)`가 웹에서만(`Platform.OS === 'web'`) 동작합니다. 서비스워커 등록 → 알림 권한 요청 → `PushManager.subscribe`로 구독 생성 → `webPushSubscriptions/{userId}` 문서에 저장(`endpoint`, `keys.p256dh`, `keys.auth`). `AuthContext`에서 로그인 직후 호출되며, 네이티브 앱의 `refreshDailyReminder`와는 완전히 분리되어 있습니다(웹은 이쪽, 네이티브는 그쪽).
+- **발송 서버**: `workers/reminder-push/`는 Expo 앱과 별개인 **Cloudflare Worker** 프로젝트입니다. 매일 11:00 UTC(20:00 KST)에 Cron Trigger로 실행되어, `webPushSubscriptions` 컬렉션을 전부 조회하고 각 유저의 `lastReadAt`을 확인해 그날 아직 안 읽은 사람에게만 Web Push를 보냅니다. Web Push 프로토콜 자체(VAPID + 페이로드 암호화)는 Workers/Web Crypto 환경에 맞는 `@block65/webcrypto-web-push` 패키지를 씁니다. Firestore는 `firebase-admin`(Node 전용이라 Workers에서 못 씀) 대신, 서비스 계정으로 Google OAuth2 토큰을 직접 발급받아 REST API로 읽고 씁니다(`src/googleAuth.ts`, `src/firestore.ts`).
+- **비용**: Cloudflare Workers 무료 티어, Web Push 자체도 무료 오픈 표준이라 이 알림 경로엔 돈이 들지 않습니다.
+
+**한계**:
+- iOS 16.4 이상 + 반드시 "홈 화면에 추가"를 해야 알림이 옵니다(사파리 탭으로만 열면 알림 자체가 안 옴). 안드로이드 크롬은 홈 화면 추가 없이도 비교적 잘 동작합니다.
+- 하루 한 번(20:00 KST)만 확인하는 구조라, 네이티브 로컬 알림처럼 "오늘 읽으면 알림이 안 뜨고 다음날로 재예약"되는 정교한 동작은 아니고 그냥 그 순간 안 읽었으면 보내는 방식입니다.
+- 구독이 만료/삭제된 경우(브라우저가 410/404를 반환) Worker가 자동으로 Firestore에서 해당 구독을 정리합니다.
+
+**배포 방법** (Cloudflare 계정 필요, 아래는 `workers/reminder-push/` 안에서 실행):
+1. Firebase 콘솔 > 프로젝트 설정 > 서비스 계정에서 발급받은 `client_email`/`private_key`(`serviceAccountKey.json`과 같은 것) 준비.
+2. `wrangler.toml`의 `[vars]`에 `FIREBASE_PROJECT_ID`(Firebase 프로젝트 ID)를 채워 넣기.
+3. 시크릿 등록(값은 커밋하지 말고 이 명령으로만 등록):
+   ```
+   npx wrangler login
+   npx wrangler secret put FIREBASE_CLIENT_EMAIL
+   npx wrangler secret put FIREBASE_PRIVATE_KEY
+   npx wrangler secret put VAPID_PUBLIC_KEY
+   npx wrangler secret put VAPID_PRIVATE_KEY
+   ```
+   (VAPID 키는 이미 한 쌍 발급해서 전달드렸습니다. 공개키는 `src/constants/webPushConfig.ts`에도 이미 들어가 있습니다.)
+4. `npm install && npx wrangler deploy`
 
 ## 디자인 폴리싱 (10단계 일부)
 
