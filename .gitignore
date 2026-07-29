@@ -49,3 +49,7 @@ google-services.json
 
 # Cloud Functions 컴파일 결과물
 functions/lib/
+
+# Cloudflare Worker(웹푸시 발송 서버) 로컬 개발 파일
+workers/reminder-push/.wrangler/
+workers/reminder-push/.dev.vars

@@ -46,3 +46,13 @@ export interface ParticipantDoc {
   nickname: string;
   joinedAt: number;
 }
+
+/** 웹(PWA)에서 등록한 Web Push 구독 정보. Cloudflare Worker가 매일 저녁 8시(KST)에 이 문서들을 조회해 발송한다. */
+export interface WebPushSubscriptionDoc {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+  updatedAt: number;
+}

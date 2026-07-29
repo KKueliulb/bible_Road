@@ -1,0 +1,18 @@
+name = "bible-road-reminder-push"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+# 매일 11:00 UTC = 20:00 KST에 실행된다.
+[triggers]
+crons = ["0 11 * * *"]
+
+# 비밀이 아닌 값. Firebase 프로젝트 ID는 공개돼도 문제없다(서비스 계정 키가 실제 인증 수단).
+[vars]
+FIREBASE_PROJECT_ID = "bible-roadmap-3b901"
+VAPID_SUBJECT = "mailto:example@example.com"
+
+# 아래는 여기 적지 말고 `wrangler secret put <이름>` 으로 등록할 것:
+#   VAPID_PUBLIC_KEY
+#   VAPID_PRIVATE_KEY
+#   FIREBASE_CLIENT_EMAIL
+#   FIREBASE_PRIVATE_KEY

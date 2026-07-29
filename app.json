@@ -20,7 +20,9 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "themeColor": "#1B2A4A",
+      "description": "매일 목표 장수를 채우며 성경을 통독하는 습관 앱"
     },
     "plugins": [
       [
