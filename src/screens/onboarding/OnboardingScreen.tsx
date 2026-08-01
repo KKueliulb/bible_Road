@@ -101,7 +101,9 @@ export default function OnboardingScreen() {
           <Text style={styles.title}>알림은 언제 받을까요?</Text>
           <Text style={styles.subtitle}>오늘 목표를 아직 못 채웠으면 고른 시간에 알림을 보내드려요.</Text>
 
-          <ReminderScheduleSelector value={reminderSchedule} onChange={setReminderSchedule} disabled={isSubmitting} />
+          <View style={styles.reminderSelectorWrap}>
+            <ReminderScheduleSelector value={reminderSchedule} onChange={setReminderSchedule} disabled={isSubmitting} />
+          </View>
 
           <Pressable style={styles.nextButton} onPress={handleFinish} disabled={isSubmitting}>
             {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.nextButtonText}>시작하기</Text>}
@@ -149,6 +151,9 @@ const styles = StyleSheet.create({
   },
   content: {
     alignItems: 'stretch',
+  },
+  reminderSelectorWrap: {
+    marginBottom: spacing.xxl + spacing.sm,
   },
   emoji: {
     fontSize: 56,
