@@ -45,7 +45,7 @@ npm run seed:books
 
 ## 가입된 유저 초기화 (베타 테스트용)
 
-`users` + 각 유저의 `bookProgress` + `bookParticipants`(참여 기록) + `cheerLogs`(화이팅 기록)를 전부 삭제합니다. `books` 컬렉션은 건드리지 않습니다.
+`users` + 각 유저의 `bookProgress` + `bookParticipants`(참여 기록) + `cheerLogs`(화이팅 기록) + `pokeLogs`(찌르기 기록)를 전부 삭제합니다. `books` 컬렉션은 건드리지 않습니다.
 
 ⚠️ **되돌릴 수 없습니다.** serviceAccountKey.json은 `seed:books`와 동일하게 준비되어 있어야 합니다.
 
