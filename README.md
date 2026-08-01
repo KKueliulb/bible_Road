@@ -231,6 +231,12 @@ iOS는 앱스토어에 정식 배포하려면 연 $99 Apple Developer Program이
 - **발송 서버**: `workers/reminder-push/`는 Expo 앱과 별개인 **Cloudflare Worker** 프로젝트입니다. 매일 11:00 UTC(20:00 KST)에 Cron Trigger로 실행되어, `webPushSubscriptions` 컬렉션을 전부 조회하고 각 유저의 `lastReadAt`을 확인해 그날 아직 안 읽은 사람에게만 Web Push를 보냅니다. Web Push 프로토콜 자체(VAPID + 페이로드 암호화)는 Workers/Web Crypto 환경에 맞는 `@block65/webcrypto-web-push` 패키지를 씁니다. Firestore는 `firebase-admin`(Node 전용이라 Workers에서 못 씀) 대신, 서비스 계정으로 Google OAuth2 토큰을 직접 발급받아 REST API로 읽고 씁니다(`src/googleAuth.ts`, `src/firestore.ts`).
 - **비용**: Cloudflare Workers 무료 티어, Web Push 자체도 무료 오픈 표준이라 이 알림 경로엔 돈이 들지 않습니다.
 - **알림 아이콘**: `icon`(알림 본문에 크게 보이는 이미지)은 `/icon-192.png`, `badge`(안드로이드 상태바/알림 좌측에 쓰이는 단색 아이콘)는 `/badge-96.png`(흰색 실루엣, `assets/android-icon-monochrome.png`에서 생성)를 씁니다. 처음엔 `badge`에도 `icon-192.png`(풀컬러)를 그대로 썼는데, 안드로이드는 `badge`에 컬러 이미지를 주면 렌더링을 포기하고 기본 브라우저 아이콘 + 사이트 이니셜 원형으로 대체해버려서(실제로 "갤럭시 아이콘 + 원 안에 B"로 표시되는 문제였음) 전용 단색 이미지로 분리했습니다.
+- **수동 테스트**: 매일 저녁 8시 자동 발송을 기다리지 않고 즉시 테스트하고 싶으면, `workers/reminder-push/` 폴더에서 아래 명령으로 배포된 발송 서버를 바로 트리거할 수 있습니다(Worker의 `fetch` 핸들러가 `scheduled`와 동일한 로직을 실행합니다).
+  ```
+  cd workers/reminder-push
+  npm run trigger
+  ```
+  `{ "checked": N, "sent": N, "removed": N }` 형태로 결과가 출력됩니다.
 
 **한계**:
 - iOS 16.4 이상 + 반드시 "홈 화면에 추가"를 해야 알림이 옵니다(사파리 탭으로만 열면 알림 자체가 안 옴). 안드로이드 크롬은 홈 화면 추가 없이도 비교적 잘 동작합니다.
