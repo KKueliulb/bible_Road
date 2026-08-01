@@ -77,7 +77,7 @@ src/
   components/
     common/                  # Avatar (남색 그라데이션 배경 + 닉네임 첫 글자)
     roadmap/                 # HomeTopBar, TodayGoalFloatingBar, TestamentDropdown, RoadmapNode(그라데이션+병합된 참여자 카드 포함), RoadmapConnector
-    reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList, CheerInboxModal(홈 화면 전용 화이팅 팝업)
+    reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList(화이팅/찌르기 버튼), CheerInboxModal(홈 화면 전용 화이팅 팝업)
     ranking/                 # RankingPodium(TOP 3 단상), RankingListRow, ProgressBar
     mypage/                  # HelpModal (연속 불꽃/유예/밀린 장수/회독/화이팅/알림 FAQ)
   context/AuthContext.tsx    # 로그인 상태, 세션 복원, refreshUser
@@ -88,6 +88,8 @@ src/
     bookProgressService.ts    # users/{userId}/bookProgress 조회/저장/전체삭제
     participantsService.ts    # bookParticipants/{bookId}/members 조회/등록/삭제
     cheerLogsService.ts        # 화이팅 전송/조회 (하루 1회 제한, 오늘 받은 화이팅 조회)
+    pokeLogsService.ts          # 찌르기 하루 1회 제한 체크/기록 (Firestore, cheerLogsService와 동일 패턴)
+    pokeService.ts               # 찌르기 즉시 푸시 발송 (workers/reminder-push의 POST /poke 호출)
     readingService.ts          # "읽었어요/N장 더 읽었어요" 핵심 로직 + 66권 완독 시 자동 회독 처리 (아래 참고)
     notificationsService.ts     # 알림 권한 요청 + 매일 리마인더 로컬 알림 예약 (refreshDailyReminder)
     webPushService.ts           # (웹 전용) Web Push 구독 등록 (registerWebPush)
@@ -143,7 +145,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
   
   즉 **"읽었어요!"는 밀린 장수를 늘리지도 줄이지도 않고(그 자리에서 공백을 확정만 시킴), 오직 "N장 더 읽었어요!"만 실제로 줄입니다.**
 - **읽기 화면 "오늘의 목표" 카드**: 오른쪽에 🔥 아이콘과 현재 스트릭(연속 읽기 일수)을 함께 보여줍니다(`TodayGoalCard`의 `streakDays` prop, `computeLiveStreakDays`로 계산).
-- 화이팅 버튼은 `cheerLogs/{fromUserId_toUserId_date}` 문서 존재 여부로 하루 1회 제한을 클라이언트에서 체크합니다. 다른 사람 기기로 실시간 푸시 알림을 보내는 건 서버가 있어야 가능해서(아래 "알림" 참고) 넣지 않았지만, 대신 **앱을 열 때 그날 받은 화이팅을 조회해 팝업으로 보여주는 방식**(`CheerInboxModal`)으로 상대에게 전달됩니다 — 자세한 내용은 아래 "화이팅 받은 알림(인앱 팝업)" 참고.
+- 화이팅 버튼은 `cheerLogs/{fromUserId_toUserId_date}` 문서 존재 여부로 하루 1회 제한을 클라이언트에서 체크합니다. **앱을 열 때 그날 받은 화이팅을 조회해 팝업으로 보여주는 방식**(`CheerInboxModal`)으로 상대에게 전달됩니다 — 자세한 내용은 아래 "화이팅 받은 알림(인앱 팝업)" 참고. (참고: 화이팅은 실시간 푸시가 아니지만, 아래 "찌르기(즉시 푸시)"는 실제로 상대 기기에 바로 알림을 보냅니다.)
 - **홈으로 나가는 뒤로가기 버튼은 화살표(`<`)만 표시**됩니다(`headerBackButtonDisplayMode: 'minimal'`) — iOS에서 화살표 옆에 이전 화면 제목이 함께 붙어 나오던 것을 없앴습니다.
 
 ### 화이팅 받은 알림 (인앱 팝업)
@@ -155,6 +157,17 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 - 이미 보여준 화이팅은 기기에(`AsyncStorage`, 유저별 키) id를 저장해두고 제외합니다 — 그래서 같은 화이팅이 홈 화면에 다시 올 때마다 반복해서 뜨지 않고, **새로 온 화이팅이 있을 때만** 팝업이 뜹니다.
 - 팝업 안에는 보낸 사람 닉네임과 함께 **"나도 화이팅!" 버튼**이 있어, 그 자리에서 바로 답장을 보낼 수 있습니다(이미 오늘 그 사람에게 보냈으면 "보냄"으로 비활성화). 이 답장도 동일한 `sendCheer`를 그대로 사용합니다.
 - 여전히 실시간 푸시는 아닙니다 — 홈 화면에 포커스가 와야만 확인됩니다. 상대가 화이팅을 보낸 시점에 내 기기에 즉시 알림이 뜨는 건 아니고, 다른 탭/화면에 머물러 있는 동안에는 확인되지 않습니다.
+
+### 찌르기 (즉시 푸시)
+
+화이팅과 달리, 오늘 아직 안 읽은 사람에게 **바로 웹 푸시 알림을 보내서 독촉**하는 기능입니다(`MemberProgressList`, 화이팅 버튼 옆에 "콕 찌르기" 버튼).
+
+- **표시 조건**: 나를 제외하고, **오늘 아직 안 읽은 참여자**한테만 버튼이 보입니다(각자의 `users/{userId}.lastReadAt`을 조회해 `hasReadToday`로 판단). 이미 읽은 사람을 독촉할 이유가 없어서 버튼 자체를 숨깁니다.
+- **하루 1회 제한**: `pokeLogs/{fromUserId_toUserId_date}` 문서 존재 여부로 화이팅과 동일한 방식으로 체크합니다(`pokeLogsService.ts`).
+- **실제 발송**: 리마인더 발송에 쓰는 그 Cloudflare Worker(`workers/reminder-push`)에 `POST /poke` 라우트를 추가해서, 클라이언트가 `{ fromNickname, toUserId }`를 보내면 워커가 그 자리에서 대상의 Web Push 구독으로 즉시 알림을 보냅니다(`"OO님이 콕 찔렀어요! 아직 말씀 안 읽으셨죠?"`). 워커와 앱이 서로 다른 오리진(워커 URL)이라 CORS 헤더를 추가했습니다.
+- 대상이 웹 푸시를 구독 중이 아니면(PWA 미설치 등) 조용히 `delivered: false`만 반환하고 에러를 띄우지 않습니다.
+- **네이티브 앱에는 없습니다** — 웹(PWA) 전용 기능입니다. 안드로이드도 PWA로 통일하기로 해서(위 참고) 사실상 모든 사용자에게 적용됩니다.
+- ⚠️ **배포 필요**: `workers/reminder-push`는 GitHub Actions 자동 배포 대상이 아니라서(자주 안 바뀌는 편이라 수동), `/poke` 라우트가 실제로 반영되려면 `workers/reminder-push` 폴더에서 `npx wrangler deploy`를 한 번 실행해야 합니다.
 
 ## 랭킹 (6단계)
 

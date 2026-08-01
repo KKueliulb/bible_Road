@@ -7,6 +7,9 @@ import { Book, getBookById } from '../../services/booksService';
 import { getBookProgressMap } from '../../services/bookProgressService';
 import { Participant, subscribeToParticipants } from '../../services/participantsService';
 import { hasCheeredToday, sendCheer } from '../../services/cheerLogsService';
+import { hasPokedToday, logPoke } from '../../services/pokeLogsService';
+import { sendPokePush } from '../../services/pokeService';
+import { getUserById } from '../../services/usersService';
 import {
   computeLiveOverdueChapters,
   computeLiveStreakDays,
@@ -39,6 +42,9 @@ export default function ReadingScreen({ route }: Props) {
   const [isSubmittingRead, setIsSubmittingRead] = useState(false);
   const [isSubmittingExtra, setIsSubmittingExtra] = useState(false);
   const [cheeringUserId, setCheeringUserId] = useState<string | null>(null);
+  const [notReadTodayUserIds, setNotReadTodayUserIds] = useState<Set<string>>(new Set());
+  const [pokedUserIds, setPokedUserIds] = useState<Set<string>>(new Set());
+  const [pokingUserId, setPokingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -88,6 +94,32 @@ export default function ReadingScreen({ route }: Props) {
       })
       .catch(() => {
         // 화이팅 전송 여부 확인 실패는 부가 정보라 무시
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [participants, userId]);
+
+  // 참여자 목록이 바뀔 때마다 각자 오늘 읽었는지(찌르기 대상인지)와 오늘 이미 찌른 사람인지를 다시 확인한다.
+  useEffect(() => {
+    if (!userId) return;
+    let isCancelled = false;
+
+    const others = participants.filter((p) => p.userId !== userId);
+    Promise.all(
+      others.map(async (p) => {
+        const [otherUser, poked] = await Promise.all([getUserById(p.userId), hasPokedToday(userId, p.userId)]);
+        return { userId: p.userId, notReadToday: !hasReadToday(otherUser?.lastReadAt ?? null), poked };
+      })
+    )
+      .then((results) => {
+        if (isCancelled) return;
+        setNotReadTodayUserIds(new Set(results.filter((r) => r.notReadToday).map((r) => r.userId)));
+        setPokedUserIds(new Set(results.filter((r) => r.poked).map((r) => r.userId)));
+      })
+      .catch(() => {
+        // 찌르기 가능 여부 확인 실패는 부가 정보라 무시(버튼이 안 보이는 정도로 그침)
       });
 
     return () => {
@@ -180,6 +212,20 @@ export default function ReadingScreen({ route }: Props) {
     }
   }
 
+  async function handlePoke(toUserId: string) {
+    if (!userId || !user) return;
+    setPokingUserId(toUserId);
+    try {
+      await sendPokePush(user.nickname, toUserId);
+      await logPoke(userId, toUserId);
+      setPokedUserIds((prev) => new Set(prev).add(toUserId));
+    } catch {
+      // 찌르기 전송 실패는 조용히 무시 (치명적이지 않음)
+    } finally {
+      setPokingUserId(null);
+    }
+  }
+
   return (
     <ScrollView style={styles.container}>
       <TodayGoalCard
@@ -211,6 +257,10 @@ export default function ReadingScreen({ route }: Props) {
         cheeredUserIds={cheeredUserIds}
         cheeringUserId={cheeringUserId}
         onCheer={handleCheer}
+        notReadTodayUserIds={notReadTodayUserIds}
+        pokedUserIds={pokedUserIds}
+        pokingUserId={pokingUserId}
+        onPoke={handlePoke}
       />
     </ScrollView>
   );

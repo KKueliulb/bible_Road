@@ -9,6 +9,10 @@ interface Props {
   cheeredUserIds: Set<string>;
   cheeringUserId: string | null;
   onCheer: (toUserId: string) => void;
+  notReadTodayUserIds: Set<string>;
+  pokedUserIds: Set<string>;
+  pokingUserId: string | null;
+  onPoke: (toUserId: string) => void;
 }
 
 export default function MemberProgressList({
@@ -17,6 +21,10 @@ export default function MemberProgressList({
   cheeredUserIds,
   cheeringUserId,
   onCheer,
+  notReadTodayUserIds,
+  pokedUserIds,
+  pokingUserId,
+  onPoke,
 }: Props) {
   return (
     <View style={styles.container}>
@@ -25,6 +33,10 @@ export default function MemberProgressList({
         const isMe = participant.userId === currentUserId;
         const alreadyCheered = cheeredUserIds.has(participant.userId);
         const isCheering = cheeringUserId === participant.userId;
+        // 오늘 아직 안 읽은 사람한테만 찌르기 버튼을 보여준다(이미 읽은 사람을 독촉할 필요는 없음).
+        const canPoke = !isMe && notReadTodayUserIds.has(participant.userId);
+        const alreadyPoked = pokedUserIds.has(participant.userId);
+        const isPoking = pokingUserId === participant.userId;
 
         return (
           <View key={participant.userId} style={styles.row}>
@@ -33,19 +45,36 @@ export default function MemberProgressList({
               {isMe ? ' (나)' : ''}
             </Text>
             {!isMe && (
-              <Pressable
-                style={[styles.cheerButton, alreadyCheered && styles.cheerButtonDisabled]}
-                onPress={() => onCheer(participant.userId)}
-                disabled={alreadyCheered || isCheering}
-              >
-                {isCheering ? (
-                  <ActivityIndicator size="small" color={colors.orange} />
-                ) : (
-                  <Text style={[styles.cheerText, alreadyCheered && styles.cheerTextDisabled]}>
-                    {alreadyCheered ? '오늘 보냄' : '화이팅!'}
-                  </Text>
+              <View style={styles.buttonGroup}>
+                <Pressable
+                  style={[styles.cheerButton, alreadyCheered && styles.cheerButtonDisabled]}
+                  onPress={() => onCheer(participant.userId)}
+                  disabled={alreadyCheered || isCheering}
+                >
+                  {isCheering ? (
+                    <ActivityIndicator size="small" color={colors.orange} />
+                  ) : (
+                    <Text style={[styles.cheerText, alreadyCheered && styles.cheerTextDisabled]}>
+                      {alreadyCheered ? '오늘 보냄' : '화이팅!'}
+                    </Text>
+                  )}
+                </Pressable>
+                {canPoke && (
+                  <Pressable
+                    style={[styles.pokeButton, alreadyPoked && styles.pokeButtonDisabled]}
+                    onPress={() => onPoke(participant.userId)}
+                    disabled={alreadyPoked || isPoking}
+                  >
+                    {isPoking ? (
+                      <ActivityIndicator size="small" color={colors.navy} />
+                    ) : (
+                      <Text style={[styles.pokeText, alreadyPoked && styles.pokeTextDisabled]}>
+                        {alreadyPoked ? '찌름' : '콕 찌르기'}
+                      </Text>
+                    )}
+                  </Pressable>
                 )}
-              </Pressable>
+              </View>
             )}
           </View>
         );
@@ -94,6 +123,27 @@ const styles = StyleSheet.create({
     color: colors.orange,
   },
   cheerTextDisabled: {
+    color: colors.textSecondary,
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  pokeButton: {
+    borderWidth: 1,
+    borderColor: colors.navy,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+  },
+  pokeButtonDisabled: {
+    borderColor: colors.border,
+  },
+  pokeText: {
+    ...typography.smallBold,
+    color: colors.navy,
+  },
+  pokeTextDisabled: {
     color: colors.textSecondary,
   },
 });
