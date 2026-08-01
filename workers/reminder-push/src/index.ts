@@ -17,6 +17,12 @@ const REMINDER_MESSAGE = {
   body: '아직 말씀을 읽지 않으셨네요? 지금 읽어볼까요? 🔥',
 };
 
+type ReminderSlot = 'morning' | 'evening';
+
+// wrangler.toml의 crons 배열과 1:1로 대응한다. 어느 크론이 실행됐는지 event.cron으로 구분한다.
+const MORNING_CRON = '0 23 * * *'; // 08:00 KST(다음날)
+const EVENING_CRON = '0 11 * * *'; // 20:00 KST
+
 // 다른 사용자를 지목해 콕 찌르는 즉시 알림 발송용 엔드포인트라, 앱과 다른 오리진(워커 URL)에서
 // fetch로 호출된다. 그래서 CORS 헤더가 필요하다.
 const CORS_HEADERS = {
@@ -26,8 +32,9 @@ const CORS_HEADERS = {
 };
 
 export default {
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(sendDailyReminders(env));
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    const slot: ReminderSlot = event.cron === MORNING_CRON ? 'morning' : 'evening';
+    ctx.waitUntil(sendDailyReminders(env, slot));
   },
 
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -41,9 +48,11 @@ export default {
       return handlePoke(request, env);
     }
 
-    // 그 외 요청(주로 GET)은 npm run trigger 같은 수동 테스트용 — 매일 저녁 발송 로직을 그대로 실행한다.
-    const result = await sendDailyReminders(env);
-    return Response.json(result);
+    // 그 외 요청(주로 GET)은 npm run trigger 같은 수동 테스트용 — ?slot=morning|evening 으로 어느
+    // 시간대 발송인지 지정할 수 있고, 생략하면 저녁(기존 기본 동작)으로 처리한다.
+    const slot: ReminderSlot = url.searchParams.get('slot') === 'morning' ? 'morning' : 'evening';
+    const result = await sendDailyReminders(env, slot);
+    return Response.json({ slot, ...result });
   },
 };
 
@@ -73,7 +82,10 @@ async function sendPushToSubscription(
   }
 }
 
-async function sendDailyReminders(env: Env): Promise<{ checked: number; sent: number; removed: number }> {
+async function sendDailyReminders(
+  env: Env,
+  slot: ReminderSlot
+): Promise<{ checked: number; sent: number; removed: number }> {
   const { firestore, vapid } = await getVapidAndFirestore(env);
   const subscriptions = await firestore.listDocuments('webPushSubscriptions');
 
@@ -88,6 +100,10 @@ async function sendDailyReminders(env: Env): Promise<{ checked: number; sent: nu
 
       const user = await firestore.getDocument('users', userId);
       if (!user) return;
+
+      // reminderSchedule이 없는(마이그레이션 이전) 유저는 기존 기본값인 저녁으로 취급한다.
+      const schedule = (user.reminderSchedule as string | undefined) ?? 'evening';
+      if (schedule !== 'both' && schedule !== slot) return;
 
       const lastReadAt = (user.lastReadAt as number | null) ?? null;
       if (hasReadTodayKst(lastReadAt)) return;

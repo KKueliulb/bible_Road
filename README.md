@@ -75,7 +75,7 @@ src/
     mypage/                  # MyPageScreen (통계/닉네임 변경/도움말/로그아웃)
     onboarding/              # OnboardingScreen (앱 소개 슬라이드 + 구약/신약 시작 선택)
   components/
-    common/                  # Avatar (남색 그라데이션 배경 + 닉네임 첫 글자)
+    common/                  # Avatar (남색 그라데이션 배경 + 닉네임 첫 글자), ReminderScheduleSelector (아침/저녁/모두 알림 시간 선택, 온보딩+마이페이지 공용)
     roadmap/                 # HomeTopBar, TodayGoalFloatingBar, TestamentDropdown, RoadmapNode(그라데이션+병합된 참여자 카드 포함), RoadmapConnector
     reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList(화이팅/찌르기 버튼), CheerInboxModal(홈 화면 전용 화이팅 팝업)
     ranking/                 # RankingPodium(TOP 3 단상), RankingListRow, ProgressBar
@@ -242,19 +242,20 @@ iOS는 앱스토어에 정식 배포하려면 연 $99 Apple Developer Program이
 
 - **PWA 설치**: `public/manifest.json` + `public/sw.js` + `public/index.html`(매니페스트·apple-touch-icon 링크, 서비스워커 등록 스크립트)로 구성됩니다. 사용자가 사파리/크롬에서 사이트 접속 후 "홈 화면에 추가"를 하면 일반 앱처럼 아이콘이 생기고 전체 화면으로 실행됩니다.
 - **구독 등록**: `src/services/webPushService.ts`의 `registerWebPush(userId)`가 웹에서만(`Platform.OS === 'web'`) 동작합니다. 서비스워커 등록 → 알림 권한 요청 → `PushManager.subscribe`로 구독 생성 → `webPushSubscriptions/{userId}` 문서에 저장(`endpoint`, `keys.p256dh`, `keys.auth`). `AuthContext`에서 로그인 직후 호출되며, 네이티브 앱의 `refreshDailyReminder`와는 완전히 분리되어 있습니다(웹은 이쪽, 네이티브는 그쪽).
-- **발송 서버**: `workers/reminder-push/`는 Expo 앱과 별개인 **Cloudflare Worker** 프로젝트입니다. 매일 11:00 UTC(20:00 KST)에 Cron Trigger로 실행되어, `webPushSubscriptions` 컬렉션을 전부 조회하고 각 유저의 `lastReadAt`을 확인해 그날 아직 안 읽은 사람에게만 Web Push를 보냅니다. Web Push 프로토콜 자체(VAPID + 페이로드 암호화)는 Workers/Web Crypto 환경에 맞는 `@block65/webcrypto-web-push` 패키지를 씁니다. Firestore는 `firebase-admin`(Node 전용이라 Workers에서 못 씀) 대신, 서비스 계정으로 Google OAuth2 토큰을 직접 발급받아 REST API로 읽고 씁니다(`src/googleAuth.ts`, `src/firestore.ts`).
-- **비용**: Cloudflare Workers 무료 티어, Web Push 자체도 무료 오픈 표준이라 이 알림 경로엔 돈이 들지 않습니다.
+- **발송 서버**: `workers/reminder-push/`는 Expo 앱과 별개인 **Cloudflare Worker** 프로젝트입니다. **매일 두 번**, 23:00 UTC(08:00 KST, "아침")와 11:00 UTC(20:00 KST, "저녁") Cron Trigger로 실행되어, `webPushSubscriptions` 컬렉션을 전부 조회하고 각 유저의 `reminderSchedule`(아침/저녁/모두)과 `lastReadAt`을 확인해 그 시간대를 구독했고 그날 아직 안 읽은 사람에게만 Web Push를 보냅니다. `scheduled` 핸들러가 `event.cron` 값으로 두 크론 중 어느 쪽이 실행됐는지 구분합니다(`wrangler.toml`의 `crons` 배열 순서와 `src/index.ts`의 `MORNING_CRON`/`EVENING_CRON` 상수가 1:1로 대응). Web Push 프로토콜 자체(VAPID + 페이로드 암호화)는 Workers/Web Crypto 환경에 맞는 `@block65/webcrypto-web-push` 패키지를 씁니다. Firestore는 `firebase-admin`(Node 전용이라 Workers에서 못 씀) 대신, 서비스 계정으로 Google OAuth2 토큰을 직접 발급받아 REST API로 읽고 씁니다(`src/googleAuth.ts`, `src/firestore.ts`).
+- **알림 시간 설정**: `users/{userId}.reminderSchedule`(`'morning' | 'evening' | 'both'`)로 저장됩니다. 온보딩 마지막 단계(`OnboardingScreen`)에서 처음 고르고, 마이페이지에서 언제든 바꿀 수 있습니다(`ReminderScheduleSelector` 컴포넌트를 양쪽에서 공유). 이 필드가 없는(기능 추가 이전에 가입한) 기존 유저는 발송 서버가 `'evening'`으로 취급합니다.
+- **비용**: Cloudflare Workers 무료 티어, Web Push 자체도 무료 오픈 표준이라 이 알림 경로엔 돈이 들지 않습니다. 하루 두 번 크론이 도는 것도 무료 한도 안입니다.
 - **알림 아이콘**: `icon`(알림 본문에 크게 보이는 이미지)은 `/icon-192.png`, `badge`(안드로이드 상태바/알림 좌측에 쓰이는 단색 아이콘)는 `/badge-96.png`(흰색 실루엣, `assets/android-icon-monochrome.png`에서 생성)를 씁니다. 처음엔 `badge`에도 `icon-192.png`(풀컬러)를 그대로 썼는데, 안드로이드는 `badge`에 컬러 이미지를 주면 렌더링을 포기하고 기본 브라우저 아이콘 + 사이트 이니셜 원형으로 대체해버려서(실제로 "갤럭시 아이콘 + 원 안에 B"로 표시되는 문제였음) 전용 단색 이미지로 분리했습니다.
-- **수동 테스트**: 매일 저녁 8시 자동 발송을 기다리지 않고 즉시 테스트하고 싶으면, `workers/reminder-push/` 폴더에서 아래 명령으로 배포된 발송 서버를 바로 트리거할 수 있습니다(Worker의 `fetch` 핸들러가 `scheduled`와 동일한 로직을 실행합니다).
+- **수동 테스트**: 자동 발송을 기다리지 않고 즉시 테스트하고 싶으면, `workers/reminder-push/` 폴더에서 아래 명령으로 배포된 발송 서버를 바로 트리거할 수 있습니다(Worker의 `fetch` 핸들러가 `scheduled`와 동일한 로직을 실행합니다). 기본은 저녁 시간대 기준이고, `?slot=morning`을 붙이면 아침 시간대 기준으로 테스트할 수 있습니다(URL을 직접 열거나 `curl`로 확인).
   ```
   cd workers/reminder-push
   npm run trigger
   ```
-  `{ "checked": N, "sent": N, "removed": N }` 형태로 결과가 출력됩니다.
+  `{ "slot": "evening", "checked": N, "sent": N, "removed": N }` 형태로 결과가 출력됩니다.
 
 **한계**:
 - iOS 16.4 이상 + 반드시 "홈 화면에 추가"를 해야 알림이 옵니다(사파리 탭으로만 열면 알림 자체가 안 옴). 안드로이드 크롬은 홈 화면 추가 없이도 비교적 잘 동작합니다.
-- 하루 한 번(20:00 KST)만 확인하는 구조라, 네이티브 로컬 알림처럼 "오늘 읽으면 알림이 안 뜨고 다음날로 재예약"되는 정교한 동작은 아니고 그냥 그 순간 안 읽었으면 보내는 방식입니다.
+- 하루 두 번(08:00/20:00 KST) 정해진 순간에만 확인하는 구조라, 네이티브 로컬 알림처럼 "오늘 읽으면 알림이 안 뜨고 다음날로 재예약"되는 정교한 동작은 아니고 그냥 그 순간 안 읽었으면 보내는 방식입니다.
 - 구독이 만료/삭제된 경우(브라우저가 410/404를 반환) Worker가 자동으로 Firestore에서 해당 구독을 정리합니다.
 
 **배포 방법** (Cloudflare 계정 필요, 아래는 `workers/reminder-push/` 안에서 실행):

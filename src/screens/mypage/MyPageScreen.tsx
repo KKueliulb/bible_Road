@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { changeNickname } from '../../services/usersService';
+import { changeNickname, setReminderSchedule } from '../../services/usersService';
 import { computeLiveOverdueChapters, computeLiveStreakDays } from '../../services/readingService';
 import { NICKNAME_CHANGE_LIMIT } from '../../constants/profileConfig';
+import { ReminderSchedule } from '../../types/models';
 import Avatar from '../../components/common/Avatar';
 import HelpModal from '../../components/mypage/HelpModal';
+import ReminderScheduleSelector from '../../components/common/ReminderScheduleSelector';
 import { colors, radius, spacing, typography } from '../../constants/theme';
 
 export default function MyPageScreen() {
@@ -15,6 +17,7 @@ export default function MyPageScreen() {
   const [nicknameSuccess, setNicknameSuccess] = useState(false);
   const [isChangingNickname, setIsChangingNickname] = useState(false);
   const [isHelpVisible, setIsHelpVisible] = useState(false);
+  const [isChangingReminder, setIsChangingReminder] = useState(false);
 
   if (!userId || !user) {
     return <ActivityIndicator color={colors.navy} style={styles.spinner} />;
@@ -41,6 +44,17 @@ export default function MyPageScreen() {
       setNicknameError('닉네임 변경에 실패했어요.');
     } finally {
       setIsChangingNickname(false);
+    }
+  }
+
+  async function handleChangeReminder(schedule: ReminderSchedule) {
+    if (!userId || isChangingReminder) return;
+    setIsChangingReminder(true);
+    try {
+      await setReminderSchedule(userId, schedule);
+      await refreshUser();
+    } finally {
+      setIsChangingReminder(false);
     }
   }
 
@@ -110,6 +124,14 @@ export default function MyPageScreen() {
       </View>
       {nicknameError && <Text style={styles.error}>{nicknameError}</Text>}
       {nicknameSuccess && <Text style={styles.success}>닉네임이 변경됐어요.</Text>}
+
+      <Text style={[styles.sectionTitle, styles.reminderSectionTitle]}>알림 시간</Text>
+      <Text style={styles.helperText}>오늘 목표를 아직 못 채웠으면 고른 시간에 알림을 보내드려요.</Text>
+      <ReminderScheduleSelector
+        value={user.reminderSchedule}
+        onChange={handleChangeReminder}
+        disabled={isChangingReminder}
+      />
 
       <Pressable style={styles.helpButton} onPress={() => setIsHelpVisible(true)}>
         <Text style={styles.helpButtonText}>❓ 도움말</Text>
@@ -181,6 +203,9 @@ const styles = StyleSheet.create({
     ...typography.h3,
     color: colors.navy,
     marginBottom: spacing.xs,
+  },
+  reminderSectionTitle: {
+    marginTop: spacing.xxl,
   },
   helperText: {
     ...typography.small,

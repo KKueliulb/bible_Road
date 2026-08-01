@@ -1,6 +1,6 @@
 import { collection, doc, getDoc, getDocs, limit, onSnapshot, query, setDoc, where } from 'firebase/firestore';
 import { db } from './firebase';
-import { Testament, UserDoc } from '../types/models';
+import { ReminderSchedule, Testament, UserDoc } from '../types/models';
 import { BOOKS, getPersonalizedSequence } from '../data/books';
 import { NICKNAME_CHANGE_LIMIT } from '../constants/profileConfig';
 
@@ -58,6 +58,7 @@ export async function createUser(name: string, nickname: string): Promise<{ id: 
     roadmapStartTestament: 'OT',
     hasOnboarded: false,
     dailyReminderTime: '20:00',
+    reminderSchedule: 'evening',
     createdAt: Date.now(),
   };
 
@@ -69,8 +70,12 @@ export async function updateUser(userId: string, updates: Partial<UserDoc>): Pro
   await setDoc(doc(usersCollection, userId), updates, { merge: true });
 }
 
-/** 온보딩에서 고른 시작 성경을 반영해 로드맵 진행 순서/현재 책을 설정하고 온보딩을 완료 처리한다. */
-export async function completeOnboarding(userId: string, startTestament: Testament): Promise<void> {
+/** 온보딩에서 고른 시작 성경/리마인더 시간대를 반영해 로드맵 진행 순서/현재 책을 설정하고 온보딩을 완료 처리한다. */
+export async function completeOnboarding(
+  userId: string,
+  startTestament: Testament,
+  reminderSchedule: ReminderSchedule
+): Promise<void> {
   const firstBook = getPersonalizedSequence(startTestament)[0];
   await updateUser(userId, {
     roadmapStartTestament: startTestament,
@@ -78,7 +83,13 @@ export async function completeOnboarding(userId: string, startTestament: Testame
     currentTestament: firstBook.testament,
     currentBookId: firstBook.id,
     currentChapter: 0,
+    reminderSchedule,
   });
+}
+
+/** 마이페이지에서 리마인더 받을 시간대(아침/저녁/모두)를 언제든 바꿀 수 있다. */
+export async function setReminderSchedule(userId: string, reminderSchedule: ReminderSchedule): Promise<void> {
+  await updateUser(userId, { reminderSchedule });
 }
 
 /**

@@ -1,5 +1,7 @@
 export type Testament = 'OT' | 'NT';
 
+export type ReminderSchedule = 'morning' | 'evening' | 'both';
+
 export type BookProgressStatus = 'not_started' | 'in_progress' | 'completed';
 
 export interface BookDoc {
@@ -27,8 +29,10 @@ export interface UserDoc {
   extraChaptersRepaid: number;
   graceDaysLeft: number;
   rereadCount: number;
-  /** 매일 리마인더 로컬 알림을 예약할 시각("HH:mm"). 현재는 변경 UI가 없어 항상 기본값(20:00)이다. */
+  /** 매일 리마인더 로컬 알림을 예약할 시각("HH:mm"). 네이티브 전용이며 현재 미사용(PWA 웹푸시로 대체). */
   dailyReminderTime: string;
+  /** 웹 푸시 리마인더를 받을 시간대. 매일 아침 8시/저녁 8시(KST) Cron 중 어느 쪽을 받을지 선택. */
+  reminderSchedule: ReminderSchedule;
   createdAt: number;
   /** 온보딩에서 고른 시작 성경(구약/신약). 완독 시 다음 책 자동 진행 순서와 로드맵 번호 표시에 쓰인다. */
   roadmapStartTestament: Testament;

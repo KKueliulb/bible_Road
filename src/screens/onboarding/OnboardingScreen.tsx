@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { completeOnboarding } from '../../services/usersService';
-import { Testament } from '../../types/models';
+import { ReminderSchedule, Testament } from '../../types/models';
 import { colors, radius, spacing, typography } from '../../constants/theme';
+import ReminderScheduleSelector from '../../components/common/ReminderScheduleSelector';
 
 interface IntroSlide {
   emoji: string;
@@ -36,27 +37,37 @@ const INTRO_SLIDES: IntroSlide[] = [
   {
     emoji: '🔔',
     title: '깜빡해도 알림으로 챙겨드려요',
-    description: '저녁까지 오늘 목표를 못 채우면 알림이 와요.',
+    description: '정해둔 시간까지 오늘 목표를 못 채우면 알림이 와요. 시간은 다음 화면에서 고를 수 있어요.',
   },
 ];
 
-const TOTAL_STEPS = INTRO_SLIDES.length + 1;
+const TESTAMENT_STEP = INTRO_SLIDES.length;
+const REMINDER_STEP = INTRO_SLIDES.length + 1;
+const TOTAL_STEPS = INTRO_SLIDES.length + 2;
 
 export default function OnboardingScreen() {
   const { userId, refreshUser } = useAuth();
   const [step, setStep] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState<Testament | null>(null);
+  const [selectedTestament, setSelectedTestament] = useState<Testament | null>(null);
+  const [reminderSchedule, setReminderSchedule] = useState<ReminderSchedule>('evening');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isChoiceStep = step === INTRO_SLIDES.length;
+  const isTestamentStep = step === TESTAMENT_STEP;
+  const isReminderStep = step === REMINDER_STEP;
 
-  async function handleSelect(testament: Testament) {
-    if (!userId || isSubmitting) return;
-    setIsSubmitting(testament);
+  function handleSelectTestament(testament: Testament) {
+    setSelectedTestament(testament);
+    setStep(REMINDER_STEP);
+  }
+
+  async function handleFinish() {
+    if (!userId || !selectedTestament || isSubmitting) return;
+    setIsSubmitting(true);
     try {
-      await completeOnboarding(userId, testament);
+      await completeOnboarding(userId, selectedTestament, reminderSchedule);
       await refreshUser();
     } finally {
-      setIsSubmitting(null);
+      setIsSubmitting(false);
     }
   }
 
@@ -68,41 +79,32 @@ export default function OnboardingScreen() {
         ))}
       </View>
 
-      {isChoiceStep ? (
+      {isTestamentStep ? (
         <View style={styles.content}>
           <Text style={styles.title}>어디서부터 시작할까요?</Text>
           <Text style={styles.subtitle}>
             선택한 성경부터 로드맵 순서가 정해져요. 신약을 고르면 마태복음이 1번으로 시작돼요.
           </Text>
 
-          <Pressable
-            style={[styles.optionButton, styles.optionOT]}
-            onPress={() => handleSelect('OT')}
-            disabled={isSubmitting !== null}
-          >
-            {isSubmitting === 'OT' ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Text style={styles.optionTitle}>구약부터</Text>
-                <Text style={styles.optionDesc}>창세기 1장부터 순서대로</Text>
-              </>
-            )}
+          <Pressable style={[styles.optionButton, styles.optionOT]} onPress={() => handleSelectTestament('OT')}>
+            <Text style={styles.optionTitle}>구약부터</Text>
+            <Text style={styles.optionDesc}>창세기 1장부터 순서대로</Text>
           </Pressable>
 
-          <Pressable
-            style={[styles.optionButton, styles.optionNT]}
-            onPress={() => handleSelect('NT')}
-            disabled={isSubmitting !== null}
-          >
-            {isSubmitting === 'NT' ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <>
-                <Text style={styles.optionTitle}>신약부터</Text>
-                <Text style={styles.optionDesc}>마태복음 1장부터 순서대로</Text>
-              </>
-            )}
+          <Pressable style={[styles.optionButton, styles.optionNT]} onPress={() => handleSelectTestament('NT')}>
+            <Text style={styles.optionTitle}>신약부터</Text>
+            <Text style={styles.optionDesc}>마태복음 1장부터 순서대로</Text>
+          </Pressable>
+        </View>
+      ) : isReminderStep ? (
+        <View style={styles.content}>
+          <Text style={styles.title}>알림은 언제 받을까요?</Text>
+          <Text style={styles.subtitle}>오늘 목표를 아직 못 채웠으면 고른 시간에 알림을 보내드려요.</Text>
+
+          <ReminderScheduleSelector value={reminderSchedule} onChange={setReminderSchedule} disabled={isSubmitting} />
+
+          <Pressable style={styles.nextButton} onPress={handleFinish} disabled={isSubmitting}>
+            {isSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.nextButtonText}>시작하기</Text>}
           </Pressable>
         </View>
       ) : (

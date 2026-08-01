@@ -2,9 +2,10 @@ name = "bible-road-reminder-push"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
 
-# 매일 11:00 UTC = 20:00 KST에 실행된다.
+# 매일 두 번 실행된다: 23:00 UTC(= 08:00 KST, 다음날) "아침", 11:00 UTC(= 20:00 KST) "저녁".
+# 어느 쪽인지는 index.ts의 scheduled 핸들러가 event.cron 값으로 구분한다.
 [triggers]
-crons = ["0 11 * * *"]
+crons = ["0 23 * * *", "0 11 * * *"]
 
 # 비밀이 아닌 값. Firebase 프로젝트 ID는 공개돼도 문제없다(서비스 계정 키가 실제 인증 수단).
 [vars]
