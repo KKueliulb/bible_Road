@@ -60,22 +60,3 @@ export interface WebPushSubscriptionDoc {
   };
   updatedAt: number;
 }
-
-export interface GroupDoc {
-  name: string;
-  /** 참가용 6자리 영문/숫자 코드. 혼동되는 0/O/1/I/L은 제외한 문자셋으로 생성한다. */
-  inviteCode: string;
-  ownerId: string;
-  createdAt: number;
-}
-
-/** groupMembers/{groupId}_{userId} 문서. 한 유저가 여러 그룹에 동시에 속할 수 있어 그룹당 별도 문서로 관리한다. */
-export interface GroupMemberDoc {
-  groupId: string;
-  groupName: string;
-  /** 그룹 목록 화면에서 그룹 문서를 따로 조회하지 않고 바로 보여줄 수 있도록 함께 저장한다. */
-  groupInviteCode: string;
-  userId: string;
-  nickname: string;
-  joinedAt: number;
-}

@@ -24,7 +24,8 @@ export default function RoadmapScreen({ navigation }: Props) {
   const [testament, setTestament] = useState<Testament>(user?.currentTestament ?? 'OT');
   const [books, setBooks] = useState<Book[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, BookProgressDoc>>({});
-  const [participantsByBook, setParticipantsByBook] = useState<Record<string, Participant[]>>({});
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participantCounts, setParticipantCounts] = useState<Record<string, number>>({});
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,14 +83,15 @@ export default function RoadmapScreen({ navigation }: Props) {
     };
   }, [testament]);
 
-  // 노드에 참여인원(카운트+이름)을 표시하기 위해, 잠긴(미시작) 책 포함 모든 책의 참여자 목록을
-  // 실시간(onSnapshot)으로 구독한다. 다른 사람이 참여/이탈하면 포커스 전환 없이도 바로 반영된다.
+  // 노드에 참여인원 수를 표시하기 위해, 잠긴(미시작) 책 포함 모든 책의 참여자 수를 가져온다.
+  // 각 책의 참여자 수를 실시간(onSnapshot)으로 구독한다. 다른 사람이 참여/이탈하면
+  // 포커스 전환 없이도 바로 반영된다. 테스타먼트를 바꾸면 이전 구독은 정리하고 새로 구독한다.
   useEffect(() => {
     if (books.length === 0) return;
 
     const unsubscribes = books.map((book) =>
       subscribeToParticipants(book.id, (list) => {
-        setParticipantsByBook((prev) => ({ ...prev, [book.id]: list }));
+        setParticipantCounts((prev) => ({ ...prev, [book.id]: list.length }));
       })
     );
 
@@ -97,6 +99,18 @@ export default function RoadmapScreen({ navigation }: Props) {
       unsubscribes.forEach((unsubscribe) => unsubscribe());
     };
   }, [books]);
+
+  const inProgressBook = books.find((book) => getStatus(book) === 'in_progress') ?? null;
+
+  // 진행중인 책의 참여자 목록만 이름까지 실시간으로 보여준다.
+  useEffect(() => {
+    if (!inProgressBook) {
+      setParticipants([]);
+      return;
+    }
+    const unsubscribe = subscribeToParticipants(inProgressBook.id, setParticipants);
+    return unsubscribe;
+  }, [inProgressBook]);
 
   async function handleNodePress(book: Book, status: BookProgressStatus) {
     if (status === 'not_started') {
@@ -157,7 +171,6 @@ export default function RoadmapScreen({ navigation }: Props) {
           books.map((book, index) => {
             const status = getStatus(book);
             const alignRight = index % 2 === 1;
-            const bookParticipants = participantsByBook[book.id] ?? [];
             return (
               <View key={book.id}>
                 <RoadmapNode
@@ -165,8 +178,8 @@ export default function RoadmapScreen({ navigation }: Props) {
                   status={status}
                   index={index}
                   chaptersRead={progressMap[book.id]?.chaptersRead.length ?? 0}
-                  participantCount={bookParticipants.length}
-                  participants={status === 'in_progress' ? bookParticipants : undefined}
+                  participantCount={participantCounts[book.id] ?? 0}
+                  participants={status === 'in_progress' ? participants : undefined}
                   onPress={() => handleNodePress(book, status)}
                 />
                 {index < books.length - 1 && <RoadmapConnector startRight={alignRight} />}

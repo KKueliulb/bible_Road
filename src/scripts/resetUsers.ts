@@ -2,7 +2,7 @@
  * 가입된 유저와 관련 데이터를 모두 삭제하는 초기화 스크립트.
  *
  * 삭제 대상: users/{userId} + users/{userId}/bookProgress, bookParticipants/{bookId}/members,
- * cheerLogs, pokeLogs, groups, groupMembers 전체. (books 컬렉션은 건드리지 않습니다.)
+ * cheerLogs, pokeLogs 전체. (books 컬렉션은 건드리지 않습니다.)
  *
  * ⚠️ 되돌릴 수 없습니다. 실 서비스 데이터에 실행하기 전에 정말 지워도 되는지 확인하세요.
  *
@@ -75,11 +75,9 @@ async function resetUsers() {
 
   const deletedCheerLogs = await deleteCollection(db.collection('cheerLogs'));
   const deletedPokeLogs = await deleteCollection(db.collection('pokeLogs'));
-  const deletedGroupMembers = await deleteCollection(db.collection('groupMembers'));
-  const deletedGroups = await deleteCollection(db.collection('groups'));
 
   console.log(
-    `삭제 완료 — 유저 ${deletedUsers}명, bookProgress 문서 ${deletedBookProgress}개, 참여 기록 ${deletedParticipants}건, 화이팅 로그 ${deletedCheerLogs}건, 찌르기 로그 ${deletedPokeLogs}건, 그룹 ${deletedGroups}개, 그룹 멤버 기록 ${deletedGroupMembers}건`
+    `삭제 완료 — 유저 ${deletedUsers}명, bookProgress 문서 ${deletedBookProgress}개, 참여 기록 ${deletedParticipants}건, 화이팅 로그 ${deletedCheerLogs}건, 찌르기 로그 ${deletedPokeLogs}건`
   );
 }
 
