@@ -230,6 +230,7 @@ iOS는 앱스토어에 정식 배포하려면 연 $99 Apple Developer Program이
 - **구독 등록**: `src/services/webPushService.ts`의 `registerWebPush(userId)`가 웹에서만(`Platform.OS === 'web'`) 동작합니다. 서비스워커 등록 → 알림 권한 요청 → `PushManager.subscribe`로 구독 생성 → `webPushSubscriptions/{userId}` 문서에 저장(`endpoint`, `keys.p256dh`, `keys.auth`). `AuthContext`에서 로그인 직후 호출되며, 네이티브 앱의 `refreshDailyReminder`와는 완전히 분리되어 있습니다(웹은 이쪽, 네이티브는 그쪽).
 - **발송 서버**: `workers/reminder-push/`는 Expo 앱과 별개인 **Cloudflare Worker** 프로젝트입니다. 매일 11:00 UTC(20:00 KST)에 Cron Trigger로 실행되어, `webPushSubscriptions` 컬렉션을 전부 조회하고 각 유저의 `lastReadAt`을 확인해 그날 아직 안 읽은 사람에게만 Web Push를 보냅니다. Web Push 프로토콜 자체(VAPID + 페이로드 암호화)는 Workers/Web Crypto 환경에 맞는 `@block65/webcrypto-web-push` 패키지를 씁니다. Firestore는 `firebase-admin`(Node 전용이라 Workers에서 못 씀) 대신, 서비스 계정으로 Google OAuth2 토큰을 직접 발급받아 REST API로 읽고 씁니다(`src/googleAuth.ts`, `src/firestore.ts`).
 - **비용**: Cloudflare Workers 무료 티어, Web Push 자체도 무료 오픈 표준이라 이 알림 경로엔 돈이 들지 않습니다.
+- **알림 아이콘**: `icon`(알림 본문에 크게 보이는 이미지)은 `/icon-192.png`, `badge`(안드로이드 상태바/알림 좌측에 쓰이는 단색 아이콘)는 `/badge-96.png`(흰색 실루엣, `assets/android-icon-monochrome.png`에서 생성)를 씁니다. 처음엔 `badge`에도 `icon-192.png`(풀컬러)를 그대로 썼는데, 안드로이드는 `badge`에 컬러 이미지를 주면 렌더링을 포기하고 기본 브라우저 아이콘 + 사이트 이니셜 원형으로 대체해버려서(실제로 "갤럭시 아이콘 + 원 안에 B"로 표시되는 문제였음) 전용 단색 이미지로 분리했습니다.
 
 **한계**:
 - iOS 16.4 이상 + 반드시 "홈 화면에 추가"를 해야 알림이 옵니다(사파리 탭으로만 열면 알림 자체가 안 옴). 안드로이드 크롬은 홈 화면 추가 없이도 비교적 잘 동작합니다.
@@ -264,7 +265,7 @@ npm run deploy:web
 
 **로딩 속도**: 웹 번들이 약 2MB(RN+Firebase 전체 합본) + 한글 폰트라 첫 방문은 느릴 수 있습니다. 이를 완화하기 위해:
 - `App.tsx`는 웹에서만 폰트 로딩을 기다리지 않고 즉시 렌더링합니다(시스템 폰트로 먼저 보이다가 폰트가 준비되면 자동 교체). 네이티브는 레이아웃이 튀는 걸 막기 위해 기존대로 로딩을 기다립니다.
-- `public/sw.js`가 JS 번들/폰트/아이콘처럼 파일명에 해시가 붙는 정적 자산을 캐시 우선(cache-first) 전략으로 캐싱합니다. 첫 방문 이후 재방문 시에는 캐시에서 즉시 로드됩니다(배포로 해시가 바뀌면 새 파일을 다시 받아옵니다).
+- `public/sw.js`가 `/_expo/static/`(JS 번들)·`/assets/`(폰트 등) 밑의, **파일명에 해시가 붙는** 정적 자산만 캐시 우선(cache-first) 전략으로 캐싱합니다. 첫 방문 이후 재방문 시에는 캐시에서 즉시 로드됩니다(배포로 해시가 바뀌면 새 파일을 다시 받아옵니다). `icon-192.png`, `manifest.json`, `badge-96.png`처럼 `public/` 루트에 그대로 서빙되는(해시 없는) 파일은 캐싱 대상에서 제외됩니다 — 한 번 잘못 캐싱하면 URL이 그대로라 배포로 내용이 바뀌어도 브라우저가 옛날 파일을 계속 서빙하는 문제가 있었습니다(아이콘 교체가 기기에 반영 안 되던 원인 중 하나).
 - 웹은 폰트를 TTF(~1MB×2) 대신 WOFF2(~230KB×2, 동일 글자셋을 무손실 변환)로 로드합니다. 네이티브는 WOFF2를 지원하지 않아 TTF를 그대로 씁니다. `src/hooks/useAppFonts.ts`(네이티브)/`useAppFonts.web.ts`(웹)로 플랫폼별 분기하며, `metro.config.js`에 `woff2`를 asset 확장자로 추가해뒀습니다.
 
 ### 자동 배포 (GitHub Actions)
