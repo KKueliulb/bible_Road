@@ -45,7 +45,7 @@ npm run seed:books
 
 ## 가입된 유저 초기화 (베타 테스트용)
 
-`users` + 각 유저의 `bookProgress` + `bookParticipants`(참여 기록) + `cheerLogs`(화이팅 기록) + `pokeLogs`(찌르기 기록)를 전부 삭제합니다. `books` 컬렉션은 건드리지 않습니다.
+`users` + 각 유저의 `bookProgress` + `bookParticipants`(참여 기록) + `cheerLogs`(화이팅 기록) + `pokeLogs`(찌르기 기록) + `groups`/`groupMembers`(그룹) 를 전부 삭제합니다. `books` 컬렉션은 건드리지 않습니다.
 
 ⚠️ **되돌릴 수 없습니다.** serviceAccountKey.json은 `seed:books`와 동일하게 준비되어 있어야 합니다.
 
@@ -75,18 +75,21 @@ src/
     mypage/                  # MyPageScreen (통계/닉네임 변경/도움말/로그아웃)
     onboarding/              # OnboardingScreen (앱 소개 슬라이드 + 구약/신약 시작 선택)
   components/
-    common/                  # Avatar (남색 그라데이션 배경 + 닉네임 첫 글자), ReminderScheduleSelector (아침/저녁/모두 알림 시간 선택, 온보딩+마이페이지 공용)
-    roadmap/                 # HomeTopBar, TodayGoalFloatingBar, TestamentDropdown, RoadmapNode(그라데이션+병합된 참여자 카드 포함), RoadmapConnector
+    common/                  # Avatar (남색 그라데이션 배경 + 닉네임 첫 글자), ReminderScheduleSelector (아침/저녁/모두 알림 시간 선택, 온보딩+마이페이지 공용), SegmentedTabs (범용 N-옵션 탭, TestamentDropdown/그룹·전체·개인 탭/그룹 선택 탭에 공용)
+    roadmap/                 # HomeTopBar, TodayGoalFloatingBar, TestamentDropdown(SegmentedTabs 래퍼), RoadmapNode(그라데이션+병합된 참여자 카드 포함), RoadmapConnector
     reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList(화이팅/찌르기 버튼), CheerInboxModal(홈 화면 전용 화이팅 팝업)
     ranking/                 # RankingPodium(TOP 3 단상), RankingListRow, ProgressBar
-    mypage/                  # HelpModal (연속 불꽃/유예/밀린 장수/회독/화이팅/알림 FAQ)
+    mypage/                  # HelpModal (연속 불꽃/유예/밀린 장수/회독/화이팅/알림 FAQ), GroupsCard (그룹 목록/만들기/참가/나가기)
   context/AuthContext.tsx    # 로그인 상태, 세션 복원, refreshUser
+  hooks/
+    useUserGroups.ts           # 내가 속한 그룹 목록 + 선택된 그룹 + 그 그룹 멤버 id 집합 (로드맵/랭킹 그룹 탭 공용)
   services/
     firebase.ts              # Firebase 초기화 (Firestore)
     usersService.ts          # users 컬렉션 CRUD, 랭킹 구독, 닉네임 변경, 온보딩 완료 처리
     booksService.ts           # books 컬렉션 조회 (구약/신약 필터, id로 단건 조회)
     bookProgressService.ts    # users/{userId}/bookProgress 조회/저장/전체삭제
     participantsService.ts    # bookParticipants/{bookId}/members 조회/등록/삭제
+    groupsService.ts            # groups/groupMembers 컬렉션: 그룹 생성(초대코드 발급)/참가/나가기/구독
     cheerLogsService.ts        # 화이팅 전송/조회 (하루 1회 제한, 오늘 받은 화이팅 조회)
     pokeLogsService.ts          # 찌르기 하루 1회 제한 체크/기록 (Firestore, cheerLogsService와 동일 패턴)
     pokeService.ts               # 찌르기 즉시 푸시 발송 (workers/reminder-push의 POST /poke 호출)
@@ -97,7 +100,7 @@ src/
   scripts/
     seedBooks.ts               # books 컬렉션 시딩 스크립트 (firebase-admin)
     seedTestRanking.ts          # 랭킹 화면 테스트용 더미 유저 55명 생성 스크립트 (firebase-admin)
-    resetUsers.ts               # 전체 유저 + 관련 데이터 삭제 스크립트 (firebase-admin)
+    resetUsers.ts               # 전체 유저 + 관련 데이터(그룹 포함) 삭제 스크립트 (firebase-admin)
   types/models.ts              # Firestore 데이터 모델 타입
   constants/
     theme.ts                   # 폰트/spacing/radius/색상/타이포그래피 디자인 토큰 (아래 "디자인 폴리싱" 참고)
@@ -125,6 +128,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 - 진입 가능한 노드를 누르면 `bookParticipants/{bookId}/members/{userId}`에 자동으로 참여 등록되고, 읽기 화면으로 이동합니다.
 - 책을 완독하면 그 책이 `currentBookId`였을 경우 자동으로 다음 책(정경 순서상 다음)으로 `currentBookId`/`currentTestament`가 이동합니다. 이때 **완독한 책의 참여기록은 제거되고 새 책에만 등록**됩니다 — 참여인원/이름 목록은 항상 "지금 그 책을 읽고 있는 사람"만 정확히 반영하며, 실시간 구독(onSnapshot) 덕분에 다른 사람 화면에도 즉시 반영됩니다.
 - 로드맵 화면은 포커스를 받을 때마다(읽기 화면에서 돌아올 때 등) 진행 상태(`bookProgress`)를 다시 불러옵니다. 처음 열릴 때 한 번만 불러오면 책을 완독하고 돌아와도 화면이 갱신되지 않는 문제가 있었습니다.
+- **그룹/전체/개인 탭**: 구약/신약 드롭다운 위에 있는 탭으로 노드 옆 참여인원 표시 범위를 바꿉니다(로드맵 자체, 즉 어떤 책이 완독/진행중/미시작인지는 항상 내 개인 진행 상태 그대로이고, 바뀌는 건 참여인원 카운트/이름 목록뿐입니다). **전체**(기본값)는 지금까지처럼 전교인 전체 참여자, **그룹**은 마이페이지에서 만들거나 참가한 그룹 멤버로만 필터링, **개인**은 참여인원 표시를 아예 숨깁니다. 그룹에 여러 개 가입했으면 그룹 탭 아래에 그룹 이름 탭이 하나 더 나타나 전환할 수 있고, 가입한 그룹이 없으면 안내 문구가 뜹니다. 자세한 그룹 구조는 아래 "그룹" 참고.
 
 ## 읽기 화면 (5단계)
 
@@ -179,6 +183,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 - 그 아래로 **1등부터 50등까지**를 리스트로 나열합니다(`RankingListRow`). 각 행에는 아바타(남색 그라데이션 배경 + 닉네임 첫 글자), 닉네임, **현재 읽고 있는 위치**(`{책이름} {읽은 장수}/{전체 장수}`, `user.currentBookId`/`currentChapter`를 `src/data/books.ts`의 정적 데이터로 변환), 진척도 막대 그래프(`ProgressBar`) + 소수점 첫째 자리까지의 퍼센트가 표시됩니다. 포디움에도 동일하게 현재 읽는 위치가 표시됩니다.
 - 닉네임만 표시되고 본명은 화면에 노출되지 않습니다(`RankingEntry`에 `name` 필드 자체가 없습니다). 본인 행에만 닉네임 옆에 `(나)`가 표시되고 주황색으로 강조됩니다.
 - **하단 탭바 바로 위에 내 등수 고정 표시**: 리스트를 드래그해서 내 등수 행이 화면에 보이는 동안에는 사라지고, 화면 밖으로 스크롤돼 안 보이게 되면 다시 하단에 떠서 고정됩니다(`FlatList`의 `onViewableItemsChanged`로 내 행의 가시성을 추적).
+- **그룹/전체 탭**: 포디움 위에 있는 탭으로 랭킹 대상을 바꿉니다. `subscribeToRanking`은 항상 전체 유저를 구독하고, **그룹** 탭에서는 그 결과를 그룹 멤버 id로 클라이언트에서 필터링만 합니다(별도 Firestore 쿼리 없음). 그룹을 여러 개 가입했으면 그룹 이름 탭이 추가로 뜨고, 가입한 그룹이 없으면 빈 목록 안내 문구가 뜹니다.
 
 ### 랭킹 화면 테스트용 더미 유저 55명 생성
 
@@ -195,6 +200,17 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 - **로그아웃**: 확인 Alert 후 세션(AsyncStorage)을 지우고 로그인 화면으로 돌아갑니다.
 - ~~처음부터 다시 읽기(수동 초기화) 버튼~~은 없앴습니다. 아래 "회독(다시 읽기) 자동화"를 참고하세요.
 - **도움말**: 로그아웃 버튼 위에 "❓ 도움말" 버튼을 누르면 연속 불꽃/유예/밀린 장수/회독/화이팅/알림/로드맵 순서 같은 핵심 규칙을 Q&A 형식으로 정리한 모달(`HelpModal`)이 뜹니다.
+
+### 그룹
+
+교회 청년부 등에서 전교인 대상 앱을 진/조 단위로 나눠 쓸 수 있게 만든 기능입니다(`GroupsCard`, 마이페이지 "그룹" 섹션).
+
+- **그룹 만들기**: 이름을 입력하고 만들면 `groups` 컬렉션에 문서가 생기고, 혼동되는 `0/O/1/I/L`을 뺀 문자셋으로 무작위 **6자리 영문/숫자 초대 코드**가 함께 발급됩니다(`groupsService.createGroup`). 만든 사람은 자동으로 그 그룹의 첫 멤버가 됩니다.
+- **그룹 참가**: 초대 코드를 입력하면 코드로 그룹을 찾아(`findGroupByInviteCode`) `groupMembers/{groupId}_{userId}` 문서를 만들어 참가합니다.
+- **한 유저가 여러 그룹에 동시에 가입할 수 있습니다** — 부서 그룹 + 소그룹처럼 겹쳐 쓸 수 있게 한 유저당 그룹 수 제한은 없습니다. 마이페이지 그룹 목록에서 각 그룹의 이름/초대 코드(눌러서 클립보드 복사, `expo-clipboard`)를 확인할 수 있고, "나가기"로 언제든 탈퇴할 수 있습니다.
+- **데이터 구조**: `groups/{groupId}`(이름/초대코드/만든이/생성시각) + `groupMembers/{groupId}_{userId}`(그룹id/그룹이름/초대코드/유저id/닉네임/가입시각, 멤버십마다 별도 문서). 그룹 이름·초대코드를 멤버십 문서에도 함께 저장해두어(비정규화) 그룹 문서를 추가로 조회하지 않고도 내 그룹 목록을 바로 그릴 수 있습니다. Firestore 복합 색인을 피하려고 `where` 단일 조건만 쓰고 정렬은 클라이언트에서 합니다(`subscribeToUserGroups`).
+- **홈 로드맵/랭킹 화면에 그룹 탭으로 반영**됩니다 — 자세한 내용은 위 "홈 로드맵"의 "그룹/전체/개인 탭", "랭킹"의 "그룹/전체 탭" 참고. 두 화면 모두 `src/hooks/useUserGroups.ts`로 내 그룹 목록/선택된 그룹/그 그룹 멤버 id 집합을 공용으로 관리합니다.
+- 참가 인원 제한, 그룹 관리자 권한(강퇴 등), 그룹 삭제 기능은 아직 없습니다 — 필요해지면 추가할 예정입니다.
 
 ### 회독(다시 읽기) 자동화
 

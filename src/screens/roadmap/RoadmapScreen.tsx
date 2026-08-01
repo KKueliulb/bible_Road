@@ -8,10 +8,12 @@ import { Book, getBookById, getBooksByTestament } from '../../services/booksServ
 import { getBookProgressMap } from '../../services/bookProgressService';
 import { joinBookParticipants, Participant, subscribeToParticipants } from '../../services/participantsService';
 import { computeLiveStreakDays, computeTodayGoalRange, hasReadToday } from '../../services/readingService';
+import { useUserGroups } from '../../hooks/useUserGroups';
 import { BookProgressDoc, BookProgressStatus, Testament } from '../../types/models';
 import HomeTopBar from '../../components/roadmap/HomeTopBar';
 import TodayGoalFloatingBar from '../../components/roadmap/TodayGoalFloatingBar';
 import TestamentDropdown from '../../components/roadmap/TestamentDropdown';
+import SegmentedTabs from '../../components/common/SegmentedTabs';
 import RoadmapNode from '../../components/roadmap/RoadmapNode';
 import RoadmapConnector from '../../components/roadmap/RoadmapConnector';
 import CheerInboxModal from '../../components/reading/CheerInboxModal';
@@ -19,16 +21,37 @@ import { colors, spacing, typography } from '../../constants/theme';
 
 type Props = NativeStackScreenProps<RoadmapStackParamList, 'RoadmapHome'>;
 
+type RoadmapScope = 'group' | 'all' | 'personal';
+
+const SCOPE_OPTIONS: { value: RoadmapScope; label: string }[] = [
+  { value: 'group', label: '그룹' },
+  { value: 'all', label: '전체' },
+  { value: 'personal', label: '개인' },
+];
+
 export default function RoadmapScreen({ navigation }: Props) {
   const { userId, user } = useAuth();
   const [testament, setTestament] = useState<Testament>(user?.currentTestament ?? 'OT');
+  const [scope, setScope] = useState<RoadmapScope>('all');
   const [books, setBooks] = useState<Book[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, BookProgressDoc>>({});
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [participantCounts, setParticipantCounts] = useState<Record<string, number>>({});
+  const [participantsByBook, setParticipantsByBook] = useState<Record<string, Participant[]>>({});
   const [currentBook, setCurrentBook] = useState<Book | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { groups: myGroups, activeGroupId, setActiveGroupId, groupMemberIds } = useUserGroups(userId);
+  const groupTabOptions = myGroups.map((g) => ({ value: g.groupId, label: g.groupName }));
+
+  const scopedParticipants = useCallback(
+    (bookId: string): Participant[] => {
+      const list = participantsByBook[bookId] ?? [];
+      if (scope === 'personal') return [];
+      if (scope === 'group') return list.filter((p) => groupMemberIds.has(p.userId));
+      return list;
+    },
+    [participantsByBook, scope, groupMemberIds]
+  );
 
   // 오늘의 목표 플로팅 바는 현재 보고 있는 테스타먼트와 무관하게 항상 실제 진행중인 책을 보여줘야 한다.
   useEffect(() => {
@@ -83,15 +106,15 @@ export default function RoadmapScreen({ navigation }: Props) {
     };
   }, [testament]);
 
-  // 노드에 참여인원 수를 표시하기 위해, 잠긴(미시작) 책 포함 모든 책의 참여자 수를 가져온다.
-  // 각 책의 참여자 수를 실시간(onSnapshot)으로 구독한다. 다른 사람이 참여/이탈하면
-  // 포커스 전환 없이도 바로 반영된다. 테스타먼트를 바꾸면 이전 구독은 정리하고 새로 구독한다.
+  // 노드에 참여인원(카운트+이름)을 표시하기 위해, 잠긴(미시작) 책 포함 모든 책의 참여자 목록을
+  // 실시간(onSnapshot)으로 구독한다. 다른 사람이 참여/이탈하면 포커스 전환 없이도 바로 반영된다.
+  // 스코프(그룹/전체/개인) 필터링은 이 원본 목록을 렌더링 시점에 걸러서 적용한다.
   useEffect(() => {
     if (books.length === 0) return;
 
     const unsubscribes = books.map((book) =>
       subscribeToParticipants(book.id, (list) => {
-        setParticipantCounts((prev) => ({ ...prev, [book.id]: list.length }));
+        setParticipantsByBook((prev) => ({ ...prev, [book.id]: list }));
       })
     );
 
@@ -99,18 +122,6 @@ export default function RoadmapScreen({ navigation }: Props) {
       unsubscribes.forEach((unsubscribe) => unsubscribe());
     };
   }, [books]);
-
-  const inProgressBook = books.find((book) => getStatus(book) === 'in_progress') ?? null;
-
-  // 진행중인 책의 참여자 목록만 이름까지 실시간으로 보여준다.
-  useEffect(() => {
-    if (!inProgressBook) {
-      setParticipants([]);
-      return;
-    }
-    const unsubscribe = subscribeToParticipants(inProgressBook.id, setParticipants);
-    return unsubscribe;
-  }, [inProgressBook]);
 
   async function handleNodePress(book: Book, status: BookProgressStatus) {
     if (status === 'not_started') {
@@ -161,6 +172,14 @@ export default function RoadmapScreen({ navigation }: Props) {
       )}
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <SegmentedTabs options={SCOPE_OPTIONS} value={scope} onChange={setScope} />
+        {scope === 'group' && groupTabOptions.length > 1 && (
+          <SegmentedTabs options={groupTabOptions} value={activeGroupId ?? groupTabOptions[0].value} onChange={setActiveGroupId} />
+        )}
+        {scope === 'group' && myGroups.length === 0 && (
+          <Text style={styles.groupEmptyText}>아직 가입한 그룹이 없어요. 마이페이지에서 그룹을 만들거나 참가해보세요.</Text>
+        )}
+
         <TestamentDropdown value={testament} onChange={setTestament} />
 
         {isLoading && <ActivityIndicator color={colors.navy} style={styles.spinner} />}
@@ -171,6 +190,7 @@ export default function RoadmapScreen({ navigation }: Props) {
           books.map((book, index) => {
             const status = getStatus(book);
             const alignRight = index % 2 === 1;
+            const bookParticipants = scopedParticipants(book.id);
             return (
               <View key={book.id}>
                 <RoadmapNode
@@ -178,8 +198,8 @@ export default function RoadmapScreen({ navigation }: Props) {
                   status={status}
                   index={index}
                   chaptersRead={progressMap[book.id]?.chaptersRead.length ?? 0}
-                  participantCount={participantCounts[book.id] ?? 0}
-                  participants={status === 'in_progress' ? participants : undefined}
+                  participantCount={bookParticipants.length}
+                  participants={status === 'in_progress' ? bookParticipants : undefined}
                   onPress={() => handleNodePress(book, status)}
                 />
                 {index < books.length - 1 && <RoadmapConnector startRight={alignRight} />}
@@ -215,5 +235,12 @@ const styles = StyleSheet.create({
     color: colors.danger,
     marginTop: spacing.xl,
     paddingHorizontal: spacing.xl,
+  },
+  groupEmptyText: {
+    ...typography.caption,
+    textAlign: 'center',
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.xl,
+    marginBottom: spacing.md,
   },
 });

@@ -5,9 +5,11 @@ import { changeNickname, setReminderSchedule } from '../../services/usersService
 import { computeLiveOverdueChapters, computeLiveStreakDays } from '../../services/readingService';
 import { NICKNAME_CHANGE_LIMIT } from '../../constants/profileConfig';
 import { ReminderSchedule } from '../../types/models';
+import { useUserGroups } from '../../hooks/useUserGroups';
 import Avatar from '../../components/common/Avatar';
 import HelpModal from '../../components/mypage/HelpModal';
 import ReminderScheduleSelector from '../../components/common/ReminderScheduleSelector';
+import GroupsCard from '../../components/mypage/GroupsCard';
 import { colors, radius, spacing, typography } from '../../constants/theme';
 
 export default function MyPageScreen() {
@@ -18,6 +20,7 @@ export default function MyPageScreen() {
   const [isChangingNickname, setIsChangingNickname] = useState(false);
   const [isHelpVisible, setIsHelpVisible] = useState(false);
   const [isChangingReminder, setIsChangingReminder] = useState(false);
+  const { groups: myGroups } = useUserGroups(userId);
 
   if (!userId || !user) {
     return <ActivityIndicator color={colors.navy} style={styles.spinner} />;
@@ -132,6 +135,10 @@ export default function MyPageScreen() {
         onChange={handleChangeReminder}
         disabled={isChangingReminder}
       />
+
+      <Text style={[styles.sectionTitle, styles.reminderSectionTitle]}>그룹</Text>
+      <Text style={styles.helperText}>그룹을 만들거나 초대 코드로 참가하면 로드맵/랭킹을 그룹 단위로 볼 수 있어요.</Text>
+      <GroupsCard userId={userId} nickname={user.nickname} groups={myGroups} />
 
       <Pressable style={styles.helpButton} onPress={() => setIsHelpVisible(true)}>
         <Text style={styles.helpButtonText}>❓ 도움말</Text>
