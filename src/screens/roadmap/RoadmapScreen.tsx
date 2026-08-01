@@ -21,12 +21,11 @@ import { colors, spacing, typography } from '../../constants/theme';
 
 type Props = NativeStackScreenProps<RoadmapStackParamList, 'RoadmapHome'>;
 
-type RoadmapScope = 'group' | 'all' | 'personal';
+type RoadmapScope = 'group' | 'all';
 
 const SCOPE_OPTIONS: { value: RoadmapScope; label: string }[] = [
   { value: 'group', label: '그룹' },
   { value: 'all', label: '전체' },
-  { value: 'personal', label: '개인' },
 ];
 
 export default function RoadmapScreen({ navigation }: Props) {
@@ -46,7 +45,6 @@ export default function RoadmapScreen({ navigation }: Props) {
   const scopedParticipants = useCallback(
     (bookId: string): Participant[] => {
       const list = participantsByBook[bookId] ?? [];
-      if (scope === 'personal') return [];
       if (scope === 'group') return list.filter((p) => groupMemberIds.has(p.userId));
       return list;
     },

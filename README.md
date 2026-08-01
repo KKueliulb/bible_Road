@@ -75,7 +75,7 @@ src/
     mypage/                  # MyPageScreen (통계/닉네임 변경/도움말/로그아웃)
     onboarding/              # OnboardingScreen (앱 소개 슬라이드 + 구약/신약 시작 선택)
   components/
-    common/                  # Avatar (남색 그라데이션 배경 + 닉네임 첫 글자), ReminderScheduleSelector (아침/저녁/모두 알림 시간 선택, 온보딩+마이페이지 공용), SegmentedTabs (범용 N-옵션 탭, TestamentDropdown/그룹·전체·개인 탭/그룹 선택 탭에 공용)
+    common/                  # Avatar (남색 그라데이션 배경 + 닉네임 첫 글자), ReminderScheduleSelector (아침/저녁/모두 알림 시간 선택, 온보딩+마이페이지 공용), SegmentedTabs (범용 N-옵션 탭, TestamentDropdown/그룹·전체 탭/그룹 선택 탭에 공용)
     roadmap/                 # HomeTopBar, TodayGoalFloatingBar, TestamentDropdown(SegmentedTabs 래퍼), RoadmapNode(그라데이션+병합된 참여자 카드 포함), RoadmapConnector
     reading/                 # ChapterChecklist, TodayGoalCard, StreakWarningBanner, ReadButton, ExtraReadDropdownButton, MemberProgressList(화이팅/찌르기 버튼), CheerInboxModal(홈 화면 전용 화이팅 팝업)
     ranking/                 # RankingPodium(TOP 3 단상), RankingListRow, ProgressBar
@@ -128,7 +128,7 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 - 진입 가능한 노드를 누르면 `bookParticipants/{bookId}/members/{userId}`에 자동으로 참여 등록되고, 읽기 화면으로 이동합니다.
 - 책을 완독하면 그 책이 `currentBookId`였을 경우 자동으로 다음 책(정경 순서상 다음)으로 `currentBookId`/`currentTestament`가 이동합니다. 이때 **완독한 책의 참여기록은 제거되고 새 책에만 등록**됩니다 — 참여인원/이름 목록은 항상 "지금 그 책을 읽고 있는 사람"만 정확히 반영하며, 실시간 구독(onSnapshot) 덕분에 다른 사람 화면에도 즉시 반영됩니다.
 - 로드맵 화면은 포커스를 받을 때마다(읽기 화면에서 돌아올 때 등) 진행 상태(`bookProgress`)를 다시 불러옵니다. 처음 열릴 때 한 번만 불러오면 책을 완독하고 돌아와도 화면이 갱신되지 않는 문제가 있었습니다.
-- **그룹/전체/개인 탭**: 구약/신약 드롭다운 위에 있는 탭으로 노드 옆 참여인원 표시 범위를 바꿉니다(로드맵 자체, 즉 어떤 책이 완독/진행중/미시작인지는 항상 내 개인 진행 상태 그대로이고, 바뀌는 건 참여인원 카운트/이름 목록뿐입니다). **전체**(기본값)는 지금까지처럼 전교인 전체 참여자, **그룹**은 마이페이지에서 만들거나 참가한 그룹 멤버로만 필터링, **개인**은 참여인원 표시를 아예 숨깁니다. 그룹에 여러 개 가입했으면 그룹 탭 아래에 그룹 이름 탭이 하나 더 나타나 전환할 수 있고, 가입한 그룹이 없으면 안내 문구가 뜹니다. 자세한 그룹 구조는 아래 "그룹" 참고.
+- **그룹/전체 탭**: 구약/신약 드롭다운 위에 있는 탭으로 노드 옆 참여인원 표시 범위를 바꿉니다(로드맵 자체, 즉 어떤 책이 완독/진행중/미시작인지는 항상 내 개인 진행 상태 그대로이고, 바뀌는 건 참여인원 카운트/이름 목록뿐입니다). **전체**(기본값)는 지금까지처럼 전교인 전체 참여자, **그룹**은 마이페이지에서 만들거나 참가한 그룹 멤버로만 필터링합니다. 그룹에 여러 개 가입했으면 그룹 탭 아래에 그룹 이름 탭이 하나 더 나타나 전환할 수 있고, 가입한 그룹이 없으면 안내 문구가 뜹니다. 자세한 그룹 구조는 아래 "그룹" 참고.
 
 ## 읽기 화면 (5단계)
 
