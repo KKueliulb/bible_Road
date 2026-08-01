@@ -1,17 +1,17 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { GoalSegment, formatGoalSegments } from '../../services/readingService';
 import { colors, radius, spacing, typography } from '../../constants/theme';
 
 interface Props {
   bookName: string;
-  nextStart: number;
-  nextEnd: number;
+  goalSegments: GoalSegment[];
   isCompleted: boolean;
   readToday: boolean;
 }
 
-export default function TodayGoalFloatingBar({ bookName, nextStart, nextEnd, isCompleted, readToday }: Props) {
+export default function TodayGoalFloatingBar({ bookName, goalSegments, isCompleted, readToday }: Props) {
   return (
     <View style={[styles.card, readToday && styles.cardDone]}>
       <View style={styles.textGroup}>
@@ -19,9 +19,7 @@ export default function TodayGoalFloatingBar({ bookName, nextStart, nextEnd, isC
         {isCompleted ? (
           <Text style={styles.goal}>{bookName} 완독을 축하해요! 🎉</Text>
         ) : (
-          <Text style={styles.goal}>
-            {bookName} {nextStart}장 ~ {nextEnd}장
-          </Text>
+          <Text style={styles.goal}>{formatGoalSegments(goalSegments)}</Text>
         )}
       </View>
       {readToday && !isCompleted && (

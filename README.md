@@ -101,7 +101,7 @@ src/
   types/models.ts              # Firestore 데이터 모델 타입
   constants/
     theme.ts                   # 폰트/spacing/radius/색상/타이포그래피 디자인 토큰 (아래 "디자인 폴리싱" 참고)
-    readingConfig.ts            # DAILY_CHAPTER_GOAL (하루 기본 목표 장수, 여기서 조정)
+    readingConfig.ts            # DAILY_CHAPTER_GOAL (하루 기본 목표 장수, 여기서 조정 — 책 경계 넘으면 다음 책으로 자동 롤오버)
     profileConfig.ts             # NICKNAME_CHANGE_LIMIT (닉네임 변경 가능 횟수, 여기서 조정)
     webPushConfig.ts             # VAPID 공개키 (웹 전용, 아래 "웹(PWA) 알림" 참고)
 public/                          # 웹 빌드 시 그대로 복사되는 정적 파일: index.html(PWA 메타태그), manifest.json, sw.js(서비스워커), 아이콘들
@@ -130,9 +130,10 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 
 설계 문서에 스트릭/유예/밀린 장수의 정확한 계산식이 없어서, 아래 규칙으로 직접 정의했습니다. 필요하면 `src/services/readingService.ts`와 `src/constants/readingConfig.ts`를 수정하세요.
 
-- **하루 목표 장수**: `src/constants/readingConfig.ts`의 `DAILY_CHAPTER_GOAL`(기본 5장) 하나로 관리. 숫자만 바꾸면 전체 로직에 반영됩니다.
+- **하루 목표 장수**: `src/constants/readingConfig.ts`의 `DAILY_CHAPTER_GOAL`(기본 3장) 하나로 관리. 숫자만 바꾸면 전체 로직에 반영됩니다.
 - **읽었어요! / N장 더 읽었어요!는 완전히 독립적인 하루 1회 액션**입니다. 하나를 눌렀다고 다른 하나가 사라지지 않고, 각자 회색으로 비활성화("오늘 읽음 완료" / "오늘 사용 완료")될 뿐입니다.
   - **읽었어요!**: 오늘 아직 안 눌렀으면 활성화. 누르면 `DAILY_CHAPTER_GOAL`만큼 진행 + 스트릭 갱신(`user.lastReadAt` 기준).
+    - **책 경계를 넘는 롤오버**: 지금 진행중인 책에 남은 장수가 `DAILY_CHAPTER_GOAL`보다 적으면, 남은 장을 채워 그 책을 완독하고 부족한 만큼을 개인화된 순서(`getPersonalizedSequence`)상 다음 책 앞부분에 자동으로 채웁니다. 1장짜리 책(오바댜/요한이서/요한삼서/유다서 등)이 연달아 있으면 한 번의 "읽었어요!"로 여러 책을 한꺼번에 완독할 수도 있습니다(`recordChaptersRead`가 while 루프로 처리). 이때 "오늘의 목표" 표시도 `창세기 50장, 출애굽기 1장~2장`처럼 여러 책에 걸쳐 나옵니다(`computeTodayGoalSegments` — 전체 66권을 한 줄로 이어붙인 "전역 장 위치" 기준으로 계산해서, 누르기 전 미리보기와 누른 뒤 결과가 항상 일치합니다). 66권 시퀀스의 마지막 책(예: 요한계시록)에서 목표가 남으면 새 회독으로 넘기지 않고 거기서 멈춥니다. **"N장 더 읽었어요!"는 선택 가능한 장수를 애초에 책에 남은 만큼으로 제한해두므로 롤오버되지 않습니다.**
   - **N장 더 읽었어요!**: **밀린 장수(overdueChapters)가 0보다 클 때만** 아예 나타나는 별도 버튼입니다(0이면 버튼 자체가 안 보임). 가입 첫날에는 밀린 게 없으니 뜨지 않습니다. 오늘 아직 안 썼으면 활성화되고, 하루에 한 번만 쓸 수 있습니다(`user.lastExtraReadAt` 기준, 스트릭과는 무관). 선택 가능한 장수는 1장부터 `min(밀린 장수, 책에 남은 장수)`까지 전부 고를 수 있습니다(짝수 포함).
 - **스트릭/유예(streakDays/graceDaysLeft)**: 책 단위가 아니라 유저 전역 기준이고, 실제 Firestore 값은 **"읽었어요!"에서만** 갱신됩니다("N장 더 읽었어요!"는 밀린 걸 갚는 것뿐이라 스트릭에 영향 없음). 어제 이어서 읽으면 연속 기록 +1, 하루 이상 건너뛰면 남은 유예일로 커버를 시도하고, 유예를 초과하면 스트릭이 1로 리셋됩니다. 매일 자정 서버가 따로 계산하지 않아도 되도록, 화면에 보여줄 때는 `computeLiveStreakDays`/`computeLiveOverdueChapters`가 그 자리에서 실시간으로 다시 계산합니다(아래 참고).
   - 가입 직후(`graceDaysLeft` 기본값 2, `overdueChapters` 0)는 첫 "읽었어요!" 이후와 동일한 상태라, **가입 첫날에는 아래 스트릭 경고 배너가 뜨지 않습니다.**

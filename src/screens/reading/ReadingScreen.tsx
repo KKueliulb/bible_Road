@@ -13,10 +13,11 @@ import { getUserById } from '../../services/usersService';
 import {
   computeLiveOverdueChapters,
   computeLiveStreakDays,
-  computeTodayGoalRange,
+  computeTodayGoalSegments,
   hasReadToday,
   recordChaptersRead,
 } from '../../services/readingService';
+import { getPersonalizedSequence } from '../../data/books';
 import { BookProgressDoc } from '../../types/models';
 import { DAILY_CHAPTER_GOAL } from '../../constants/readingConfig';
 import TodayGoalCard from '../../components/reading/TodayGoalCard';
@@ -142,7 +143,12 @@ export default function ReadingScreen({ route }: Props) {
   const readToday = hasReadToday(user.lastReadAt);
   const extraUsedToday = hasReadToday(user.lastExtraReadAt);
   // 오늘 이미 "읽었어요!"를 눌렀으면 다음날이 되기 전까지는 방금 끝낸 구간을 그대로 보여준다.
-  const { start: nextStart, end: nextEnd } = computeTodayGoalRange(chaptersReadCount, book.totalChapters, readToday);
+  const goalSegments = computeTodayGoalSegments(
+    getPersonalizedSequence(user.roadmapStartTestament ?? 'OT'),
+    book.id,
+    chaptersReadCount,
+    readToday
+  );
 
   function otherBooksTotal() {
     return Object.entries(progressMap)
@@ -230,8 +236,7 @@ export default function ReadingScreen({ route }: Props) {
     <ScrollView style={styles.container}>
       <TodayGoalCard
         bookName={book.name}
-        nextStart={nextStart}
-        nextEnd={nextEnd}
+        goalSegments={goalSegments}
         overdueChapters={liveOverdueChapters}
         isCompleted={isCompleted}
         streakDays={computeLiveStreakDays(user)}

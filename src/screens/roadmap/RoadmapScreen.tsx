@@ -7,7 +7,8 @@ import { useAuth } from '../../context/AuthContext';
 import { Book, getBookById, getBooksByTestament } from '../../services/booksService';
 import { getBookProgressMap } from '../../services/bookProgressService';
 import { joinBookParticipants, Participant, subscribeToParticipants } from '../../services/participantsService';
-import { computeLiveStreakDays, computeTodayGoalRange, hasReadToday } from '../../services/readingService';
+import { computeLiveStreakDays, computeTodayGoalSegments, hasReadToday } from '../../services/readingService';
+import { getPersonalizedSequence } from '../../data/books';
 import { BookProgressDoc, BookProgressStatus, Testament } from '../../types/models';
 import HomeTopBar from '../../components/roadmap/HomeTopBar';
 import TodayGoalFloatingBar from '../../components/roadmap/TodayGoalFloatingBar';
@@ -137,11 +138,14 @@ export default function RoadmapScreen({ navigation }: Props) {
   const currentBookCompleted = currentBookProgress?.status === 'completed';
   const readToday = hasReadToday(user?.lastReadAt ?? null);
   // 오늘 이미 "읽었어요!"를 눌렀으면 다음날이 되기 전까지는 방금 끝낸 구간을 그대로 보여준다.
-  const { start: todayNextStart, end: todayNextEnd } = computeTodayGoalRange(
-    currentChaptersReadCount,
-    currentBook?.totalChapters ?? 0,
-    readToday
-  );
+  const goalSegments = currentBook
+    ? computeTodayGoalSegments(
+        getPersonalizedSequence(user?.roadmapStartTestament ?? 'OT'),
+        currentBook.id,
+        currentChaptersReadCount,
+        readToday
+      )
+    : [];
 
   return (
     <View style={styles.root}>
@@ -153,8 +157,7 @@ export default function RoadmapScreen({ navigation }: Props) {
       {currentBook && (
         <TodayGoalFloatingBar
           bookName={currentBook.name}
-          nextStart={todayNextStart}
-          nextEnd={todayNextEnd}
+          goalSegments={goalSegments}
           isCompleted={currentBookCompleted}
           readToday={readToday}
         />

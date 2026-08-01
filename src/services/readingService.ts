@@ -2,7 +2,7 @@ import { Book } from './booksService';
 import { deleteAllProgress, saveBookProgress } from './bookProgressService';
 import { joinBookParticipants, removeParticipant } from './participantsService';
 import { updateUser } from './usersService';
-import { getPersonalizedSequence, TOTAL_BIBLE_CHAPTERS } from '../data/books';
+import { BookSeed, getPersonalizedSequence, TOTAL_BIBLE_CHAPTERS } from '../data/books';
 import { DAILY_CHAPTER_GOAL } from '../constants/readingConfig';
 import { BookProgressDoc, UserDoc } from '../types/models';
 
@@ -73,22 +73,67 @@ export function computeLiveStreakDays(
   return isGraceExpired(user, now) ? 0 : user.streakDays;
 }
 
+export interface GoalSegment {
+  bookId: string;
+  bookName: string;
+  start: number;
+  end: number;
+}
+
+/** sequence(개인화된 진행 순서)에서 bookId 앞에 있는 모든 책의 장수 합. */
+function cumulativeChaptersBefore(sequence: BookSeed[], bookId: string): number {
+  let sum = 0;
+  for (const b of sequence) {
+    if (b.id === bookId) return sum;
+    sum += b.totalChapters;
+  }
+  return sum;
+}
+
 /**
- * "오늘의 목표"로 표시할 장수 구간. 오늘 "읽었어요!"를 이미 눌렀으면(readToday) 방금 끝낸
- * 구간을 그대로 유지하고(체크 표시는 호출부에서 별도 처리), 다음 날이 되어야 다음 구간으로 넘어간다.
- * 그렇지 않으면 "읽었어요!"를 누르자마자 화면이 곧바로 다음 구간으로 넘어가버려서
- * 마치 오늘 목표를 아직 안 채운 것처럼 보이는 문제가 있었다.
+ * "오늘의 목표"로 표시할 구간(책 하나 이상에 걸칠 수 있음). 지금 책에 남은 장수가
+ * DAILY_CHAPTER_GOAL보다 적으면, 목표 구간이 다음 책 앞부분까지 이어져서 표시된다
+ * (예: 창세기 50장, 출애굽기 1장~2장) — recordChaptersRead의 실제 롤오버 저장 로직과
+ * 같은 계산(전체 시퀀스를 한 줄로 이어붙인 "전역 장 위치")을 써서 항상 일치하도록 한다.
+ *
+ * 오늘 "읽었어요!"를 이미 눌렀으면(readToday) 방금 끝낸 구간을 그대로 유지하고, 다음 날이
+ * 되어야 다음 구간으로 넘어간다 — 그렇지 않으면 누르자마자 화면이 곧바로 다음 구간으로
+ * 넘어가버려서 마치 오늘 목표를 아직 안 채운 것처럼 보이는 문제가 있었다.
  */
-export function computeTodayGoalRange(
+export function computeTodayGoalSegments(
+  sequence: BookSeed[],
+  currentBookId: string,
   chaptersReadCount: number,
-  totalChapters: number,
   readToday: boolean
-): { start: number; end: number } {
-  const baseline = readToday ? Math.max(0, chaptersReadCount - DAILY_CHAPTER_GOAL) : chaptersReadCount;
-  return {
-    start: baseline + 1,
-    end: Math.min(baseline + DAILY_CHAPTER_GOAL, totalChapters),
-  };
+): GoalSegment[] {
+  const totalSequenceChapters = sequence.reduce((sum, b) => sum + b.totalChapters, 0);
+  const currentGlobalPosition = cumulativeChaptersBefore(sequence, currentBookId) + chaptersReadCount;
+  const baseline = readToday ? Math.max(0, currentGlobalPosition - DAILY_CHAPTER_GOAL) : currentGlobalPosition;
+  const target = Math.min(baseline + DAILY_CHAPTER_GOAL, totalSequenceChapters);
+
+  const segments: GoalSegment[] = [];
+  let offset = 0;
+  for (const book of sequence) {
+    const bookStartGlobal = offset;
+    const bookEndGlobal = offset + book.totalChapters;
+    offset = bookEndGlobal;
+    if (bookEndGlobal <= baseline) continue;
+    if (bookStartGlobal >= target) break;
+
+    const start = Math.max(baseline, bookStartGlobal) - bookStartGlobal + 1;
+    const end = Math.min(target, bookEndGlobal) - bookStartGlobal;
+    if (end >= start) {
+      segments.push({ bookId: book.id, bookName: book.name, start, end });
+    }
+  }
+  return segments;
+}
+
+/** GoalSegment[]를 "창세기 50장, 출애굽기 1장~2장" 형식의 문자열로 합친다. */
+export function formatGoalSegments(segments: GoalSegment[]): string {
+  return segments
+    .map((seg) => (seg.start === seg.end ? `${seg.bookName} ${seg.end}장` : `${seg.bookName} ${seg.start}장~${seg.end}장`))
+    .join(', ');
 }
 
 interface RecordReadingParams {
@@ -108,6 +153,12 @@ interface RecordReadingResult {
   userUpdates: Partial<UserDoc>;
 }
 
+interface TouchedBook {
+  book: Book;
+  progress: BookProgressDoc;
+  chaptersAdded: number;
+}
+
 /**
  * "읽었어요!" / "N장 더 읽었어요!" 공용 로직.
  * 설계문서에 스트릭/유예/밀린 장수의 정확한 계산식이 없어 아래 규칙으로 구현함(추후 9단계 Cloud Functions에서 보완 가능):
@@ -115,29 +166,61 @@ interface RecordReadingResult {
  * - lastExtraReadAt/extraChaptersRepaid는 'extra' 액션 전용 — "읽었어요"를 눌렀다고 "N장 더 읽었어요"가
  *   하루치 다 쓴 걸로 처리되지도, 밀린 장수가 줄어들지도 않는다.
  * - 책을 완독하면 그 책이 currentBookId였을 때만 다음 책으로 자동 이동(그렇지 않으면 로드맵에서 다음 책이 영원히 잠겨 있게 됨)
+ * - "읽었어요!"(actionType 'base')이면서 지금 진행중인 책(currentBookId)일 때만, 목표 장수가 책 끝을
+ *   넘어가면 남은 만큼 다음 책(들)으로 이어서 채운다("롤오버"). 1장짜리 책이 연달아 있으면 한 번에
+ *   여러 책을 완독할 수도 있어 while 루프로 처리한다. "N장 더 읽었어요!"는 애초에 호출부(ReadingScreen)가
+ *   선택 가능한 장수를 책에 남은 만큼으로 제한해두므로 롤오버가 필요 없다.
  */
 export async function recordChaptersRead(params: RecordReadingParams): Promise<RecordReadingResult> {
   const { userId, user, book, existingProgress, chapterCount, actionType, otherBooksChaptersReadTotal } = params;
 
-  const currentChaptersRead = existingProgress?.chaptersRead ?? [];
-  const alreadyReadCount = currentChaptersRead.length;
-  const nextStart = alreadyReadCount + 1;
-  const nextEnd = Math.min(alreadyReadCount + chapterCount, book.totalChapters);
+  const isCurrentBook = user.currentBookId === book.id;
+  const allowRollover = actionType === 'base' && isCurrentBook;
+  const sequence = getPersonalizedSequence(user.roadmapStartTestament ?? 'OT');
 
-  const chaptersToAdd: number[] = [];
-  for (let chapter = nextStart; chapter <= nextEnd; chapter += 1) {
-    chaptersToAdd.push(chapter);
+  const touched: TouchedBook[] = [];
+  let remainingGoal = chapterCount;
+  let cursorBook: Book = book;
+  let cursorExisting: BookProgressDoc | null = existingProgress;
+  let sequenceIndex = sequence.findIndex((b) => b.id === book.id);
+
+  while (remainingGoal > 0) {
+    const currentChaptersRead = cursorExisting?.chaptersRead ?? [];
+    const alreadyReadCount = currentChaptersRead.length;
+    const toAddCount = Math.min(remainingGoal, cursorBook.totalChapters - alreadyReadCount);
+    const nextStart = alreadyReadCount + 1;
+    const nextEnd = alreadyReadCount + toAddCount;
+
+    const chaptersToAdd: number[] = [];
+    for (let chapter = nextStart; chapter <= nextEnd; chapter += 1) {
+      chaptersToAdd.push(chapter);
+    }
+
+    const newChaptersRead = [...currentChaptersRead, ...chaptersToAdd];
+    const status = newChaptersRead.length >= cursorBook.totalChapters ? 'completed' : 'in_progress';
+    const progress: BookProgressDoc = {
+      chaptersRead: newChaptersRead,
+      status,
+      completedAt: status === 'completed' ? cursorExisting?.completedAt ?? Date.now() : null,
+    };
+
+    touched.push({ book: cursorBook, progress, chaptersAdded: toAddCount });
+    remainingGoal -= toAddCount;
+
+    if (remainingGoal <= 0 || status !== 'completed' || !allowRollover) break;
+
+    const nextBook = sequence[sequenceIndex + 1];
+    if (!nextBook) break; // 시퀀스 끝(66권 전체 완독) - 새 회독으로 넘기지 않고 여기서 멈춘다
+    sequenceIndex += 1;
+    cursorBook = nextBook;
+    cursorExisting = null; // 다음 책은 항상 진행 기록이 없는(잠긴) 상태에서 시작한다
   }
 
-  const newChaptersRead = [...currentChaptersRead, ...chaptersToAdd];
-  const status = newChaptersRead.length >= book.totalChapters ? 'completed' : 'in_progress';
-  const progress: BookProgressDoc = {
-    chaptersRead: newChaptersRead,
-    status,
-    completedAt: status === 'completed' ? existingProgress?.completedAt ?? Date.now() : null,
-  };
+  await Promise.all(touched.map(({ book: b, progress }) => saveBookProgress(userId, b.id, progress)));
 
-  await saveBookProgress(userId, book.id, progress);
+  const firstTouched = touched[0];
+  const lastTouched = touched[touched.length - 1];
+  const totalChaptersAdded = touched.reduce((sum, t) => sum + t.chaptersAdded, 0);
 
   const now = Date.now();
   const userUpdates: Partial<UserDoc> = {};
@@ -177,17 +260,17 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
 
   if (actionType === 'extra') {
     userUpdates.lastExtraReadAt = now;
-    userUpdates.extraChaptersRepaid = (user.extraChaptersRepaid ?? 0) + chaptersToAdd.length;
+    userUpdates.extraChaptersRepaid = (user.extraChaptersRepaid ?? 0) + totalChaptersAdded;
   }
 
-  const totalChaptersRead = otherBooksChaptersReadTotal + newChaptersRead.length;
-  userUpdates.totalProgressPercent = Math.round((totalChaptersRead / TOTAL_BIBLE_CHAPTERS) * 1000) / 10;
+  const totalChaptersReadOverall =
+    otherBooksChaptersReadTotal + touched.reduce((sum, t) => sum + t.progress.chaptersRead.length, 0);
+  userUpdates.totalProgressPercent = Math.round((totalChaptersReadOverall / TOTAL_BIBLE_CHAPTERS) * 1000) / 10;
 
-  if (user.currentBookId === book.id) {
-    if (status === 'completed') {
-      const sequence = getPersonalizedSequence(user.roadmapStartTestament ?? 'OT');
-      const currentIndex = sequence.findIndex((b) => b.id === book.id);
-      const nextBook = sequence[currentIndex + 1];
+  if (isCurrentBook) {
+    if (lastTouched.progress.status === 'completed') {
+      const lastIndex = sequence.findIndex((b) => b.id === lastTouched.book.id);
+      const nextBook = sequence[lastIndex + 1];
       if (nextBook) {
         userUpdates.currentBookId = nextBook.id;
         userUpdates.currentTestament = nextBook.testament;
@@ -217,11 +300,20 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
         ]);
       }
     } else {
-      userUpdates.currentChapter = newChaptersRead.length;
+      userUpdates.currentChapter = lastTouched.progress.chaptersRead.length;
+      if (lastTouched.book.id !== book.id) {
+        // 이번 액션에서 다음 책으로 롤오버됐지만(원래 책은 완독) 새 책은 아직 다 못 채운 경우.
+        userUpdates.currentBookId = lastTouched.book.id;
+        userUpdates.currentTestament = lastTouched.book.testament;
+        await Promise.all([
+          removeParticipant(book.id, userId),
+          joinBookParticipants(lastTouched.book.id, userId, user.nickname),
+        ]);
+      }
     }
   }
 
   await updateUser(userId, userUpdates);
 
-  return { progress, userUpdates };
+  return { progress: firstTouched.progress, userUpdates };
 }

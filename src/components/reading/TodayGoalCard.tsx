@@ -1,34 +1,25 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { GoalSegment, formatGoalSegments } from '../../services/readingService';
 import { colors, radius, spacing, typography } from '../../constants/theme';
 
 interface Props {
   bookName: string;
-  nextStart: number;
-  nextEnd: number;
+  goalSegments: GoalSegment[];
   overdueChapters: number;
   isCompleted: boolean;
   streakDays: number;
 }
 
-export default function TodayGoalCard({
-  bookName,
-  nextStart,
-  nextEnd,
-  overdueChapters,
-  isCompleted,
-  streakDays,
-}: Props) {
+export default function TodayGoalCard({ bookName, goalSegments, overdueChapters, isCompleted, streakDays }: Props) {
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>
         {isCompleted ? (
           <Text style={styles.goalText}>{bookName} 완독을 축하해요! 🎉</Text>
         ) : (
-          <Text style={styles.goalText}>
-            오늘의 목표: {bookName} {nextStart}장 ~ {nextEnd}장
-          </Text>
+          <Text style={styles.goalText}>오늘의 목표: {formatGoalSegments(goalSegments)}</Text>
         )}
         <View style={styles.streakBadge}>
           <Ionicons name="flame" size={16} color={colors.orange} />
