@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
   reminderSelectorWrap: {
-    marginBottom: spacing.xxl + spacing.sm,
+    marginBottom: spacing.xxl + spacing.xl,
   },
   emoji: {
     fontSize: 56,
