@@ -129,8 +129,8 @@ async function handlePoke(request: Request, env: Env): Promise<Response> {
   }
 
   const message = {
-    title: 'Bible Road',
-    body: `콕콕! 👉 ${fromNickname}님이 같이 읽재요!`,
+    title: '콕콕! 👉',
+    body: `${fromNickname}님이 같이 읽재요!`,
   };
 
   const result = await sendPushToSubscription(endpoint, { p256dh: keys.p256dh, auth: keys.auth }, message, vapid);

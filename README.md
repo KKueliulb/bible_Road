@@ -164,8 +164,8 @@ assets/fonts/                    # 나눔스퀘어라운드 Regular/Bold TTF (OF
 
 - **표시 조건**: 나를 제외하고, **오늘 아직 안 읽은 참여자**한테만 버튼이 보입니다(각자의 `users/{userId}.lastReadAt`을 조회해 `hasReadToday`로 판단). 이미 읽은 사람을 독촉할 이유가 없어서 버튼 자체를 숨깁니다.
 - **하루 1회 제한**: `pokeLogs/{fromUserId_toUserId_date}` 문서 존재 여부로 화이팅과 동일한 방식으로 체크합니다(`pokeLogsService.ts`).
-- **실제 발송**: 리마인더 발송에 쓰는 그 Cloudflare Worker(`workers/reminder-push`)에 `POST /poke` 라우트를 추가해서, 클라이언트가 `{ fromNickname, toUserId }`를 보내면 워커가 그 자리에서 대상의 Web Push 구독으로 즉시 알림을 보냅니다(제목 `"Bible Road"`, 내용 `"콕콕! 👉 OO님이 같이 읽재요!"` — 매일 리마인더와 같은 제목 포맷). 워커와 앱이 서로 다른 오리진(워커 URL)이라 CORS 헤더를 추가했습니다.
-- 알림 하단에 크롬/안드로이드가 자동으로 붙이는 "from Bible Road" 같은 출처 표시는 알림 payload(title/body)로 조절할 수 있는 부분이 아닙니다 — PWA가 크롬에 "완전히 설치된 앱"(WebAPK)으로 인식됐는지에 달려있습니다(위 "PWA 설치" 섹션의 "설치 먼저 → 그 안에서 알림 권한 허용" 순서 참고).
+- **실제 발송**: 리마인더 발송에 쓰는 그 Cloudflare Worker(`workers/reminder-push`)에 `POST /poke` 라우트를 추가해서, 클라이언트가 `{ fromNickname, toUserId }`를 보내면 워커가 그 자리에서 대상의 Web Push 구독으로 즉시 알림을 보냅니다(제목 `"콕콕! 👉"`, 내용 `"OO님이 같이 읽재요!"`). 워커와 앱이 서로 다른 오리진(워커 URL)이라 CORS 헤더를 추가했습니다.
+- iOS Safari는 웹푸시 알림에 title/body를 뭘로 설정하든 상관없이 **"from Bible Road" 같은 출처 표시를 강제로 붙입니다**(웹사이트가 네이티브 앱인 척 위장하지 못하도록 하는 WebKit의 의도된 동작). PWA 재설치, 알림 권한 재설정 등으로도 없어지지 않는 걸 확인했고, payload로 조절 가능한 부분이 아니라 코드로는 못 없앱니다 — 완전히 없애려면 네이티브 앱 + APNs(유료 Apple Developer Program)가 필요한데, 그게 PWA로 가기로 한 이유와 상충되어 감수하기로 했습니다.
 - 대상이 웹 푸시를 구독 중이 아니면(PWA 미설치 등) 조용히 `delivered: false`만 반환하고 에러를 띄우지 않습니다.
 - **네이티브 앱에는 없습니다** — 웹(PWA) 전용 기능입니다. 안드로이드도 PWA로 통일하기로 해서(위 참고) 사실상 모든 사용자에게 적용됩니다.
 - ⚠️ **배포 필요**: `workers/reminder-push`는 GitHub Actions 자동 배포 대상이 아니라서(자주 안 바뀌는 편이라 수동), `/poke` 라우트가 실제로 반영되려면 `workers/reminder-push` 폴더에서 `npx wrangler deploy`를 한 번 실행해야 합니다.
