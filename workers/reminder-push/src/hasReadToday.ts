@@ -12,3 +12,12 @@ export function hasReadTodayKst(lastReadAt: number | null, nowMs: number = Date.
   if (lastReadAt === null) return false;
   return kstDateOnly(lastReadAt) === kstDateOnly(nowMs);
 }
+
+/** KST 기준 오늘 날짜를 "YYYY-MM-DD"로 반환한다(리마인더 중복 발송 방지 키에 사용). */
+export function kstDateKey(nowMs: number = Date.now()): string {
+  const shifted = new Date(nowMs + KST_OFFSET_MS);
+  const y = shifted.getUTCFullYear();
+  const m = String(shifted.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(shifted.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}

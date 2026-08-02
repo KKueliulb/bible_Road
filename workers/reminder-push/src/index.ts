@@ -1,7 +1,7 @@
 import { buildPushPayload, type PushSubscription, type VapidKeys } from '@block65/webcrypto-web-push';
 import { getFirestoreAccessToken } from './googleAuth';
 import { createFirestoreClient, type FirestoreClient } from './firestore';
-import { hasReadTodayKst } from './hasReadToday';
+import { hasReadTodayKst, kstDateKey } from './hasReadToday';
 
 export interface Env {
   FIREBASE_PROJECT_ID: string;
@@ -85,11 +85,17 @@ async function sendPushToSubscription(
 async function sendDailyReminders(
   env: Env,
   slot: ReminderSlot
-): Promise<{ checked: number; sent: number; removed: number }> {
+): Promise<{ checked: number; sent: number; skipped: number; removed: number }> {
   const { firestore, vapid } = await getVapidAndFirestore(env);
   const subscriptions = await firestore.listDocuments('webPushSubscriptions');
+  // Cloudflare Cron Trigger는 "최소 1회" 실행만 보장하고 드물게 같은 슬롯이 중복 실행될 수 있다.
+  // 그래도 유저에게는 슬롯당 하루 최대 1회만 가도록, 이번 실행의 "날짜+슬롯" 키를 구독 문서에
+  // 남겨두고 이미 같은 키로 보낸 적 있으면 건너뛴다(동시에 중복 실행되는 극단적인 경우까지 막는
+  // 엄밀한 락은 아니고, 순차적인 재시도 케이스를 막는 best-effort 장치다).
+  const reminderKey = `${kstDateKey()}-${slot}`;
 
   let sent = 0;
+  let skipped = 0;
   let removed = 0;
 
   await Promise.all(
@@ -97,6 +103,11 @@ async function sendDailyReminders(
       const endpoint = data.endpoint as string | undefined;
       const keys = data.keys as { p256dh?: string; auth?: string } | undefined;
       if (!endpoint || !keys?.p256dh || !keys?.auth) return;
+
+      if (data.lastReminderKey === reminderKey) {
+        skipped++;
+        return;
+      }
 
       const user = await firestore.getDocument('users', userId);
       if (!user) return;
@@ -114,11 +125,12 @@ async function sendDailyReminders(
         removed++;
       } else if (result === 'sent') {
         sent++;
+        await firestore.updateDocument('webPushSubscriptions', userId, { lastReminderKey: reminderKey });
       }
     })
   );
 
-  return { checked: subscriptions.length, sent, removed };
+  return { checked: subscriptions.length, sent, skipped, removed };
 }
 
 async function handlePoke(request: Request, env: Env): Promise<Response> {

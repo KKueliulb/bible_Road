@@ -38,9 +38,29 @@ function docId(doc: FirestoreDocument): string {
   return parts[parts.length - 1];
 }
 
+function wrap(value: unknown): FirestoreValue {
+  if (value === null || value === undefined) return { nullValue: null };
+  if (typeof value === 'string') return { stringValue: value };
+  if (typeof value === 'boolean') return { booleanValue: value };
+  if (typeof value === 'number') {
+    return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
+  }
+  throw new Error(`wrap: 지원하지 않는 값 타입(${typeof value})`);
+}
+
+function wrapFields(fields: Record<string, unknown>): Record<string, FirestoreValue> {
+  const result: Record<string, FirestoreValue> = {};
+  for (const [key, value] of Object.entries(fields)) {
+    result[key] = wrap(value);
+  }
+  return result;
+}
+
 export interface FirestoreClient {
   listDocuments(collectionId: string): Promise<Array<{ id: string; data: Record<string, unknown> }>>;
   getDocument(collectionId: string, docId: string): Promise<Record<string, unknown> | null>;
+  /** 지정한 필드만 부분 갱신한다(updateMask). 문서의 다른 필드는 건드리지 않는다. */
+  updateDocument(collectionId: string, docId: string, fields: Record<string, unknown>): Promise<void>;
   deleteDocument(collectionId: string, docId: string): Promise<void>;
 }
 
@@ -80,6 +100,21 @@ export function createFirestoreClient(projectId: string, accessToken: string): F
       }
       const doc = (await response.json()) as FirestoreDocument;
       return unwrapFields(doc.fields);
+    },
+
+    async updateDocument(collectionId, id, fields) {
+      const url = new URL(`${base}/${collectionId}/${id}`);
+      for (const key of Object.keys(fields)) {
+        url.searchParams.append('updateMask.fieldPaths', key);
+      }
+      const response = await fetch(url.toString(), {
+        method: 'PATCH',
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: wrapFields(fields) }),
+      });
+      if (!response.ok) {
+        throw new Error(`Firestore updateDocument 실패(${collectionId}/${id}): ${response.status} ${await response.text()}`);
+      }
     },
 
     async deleteDocument(collectionId, id) {

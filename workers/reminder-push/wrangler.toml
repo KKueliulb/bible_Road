@@ -12,6 +12,18 @@ crons = ["0 23 * * *", "0 11 * * *"]
 FIREBASE_PROJECT_ID = "bible-roadmap-3b901"
 VAPID_SUBJECT = "mailto:example@example.com"
 
+# Cloudflare 대시보드 Logs(Observability)를 켠다 — 발송 이상(중복/누락) 발생 시 실제 호출 기록
+# (scheduled/fetch 여부, 시각)을 나중에 조회할 수 있도록. persist=true라 과거 기록도 남는다.
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
 # 아래는 여기 적지 말고 `wrangler secret put <이름>` 으로 등록할 것:
 #   VAPID_PUBLIC_KEY
 #   VAPID_PRIVATE_KEY
