@@ -7,3 +7,10 @@ directory = "./dist"
 
 [observability]
 enabled = false
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+
+[observability.logs]
+[observability.traces]
