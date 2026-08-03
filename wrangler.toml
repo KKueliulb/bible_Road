@@ -7,4 +7,3 @@ directory = "./dist"
 
 [observability]
 enabled = false
-
