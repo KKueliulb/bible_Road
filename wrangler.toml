@@ -4,3 +4,7 @@ compatibility_date = "2024-09-23"
 # `expo export --platform web`의 결과물(dist/)을 그대로 정적 사이트로 서빙한다.
 [assets]
 directory = "./dist"
+
+[observability]
+enabled = false
+
