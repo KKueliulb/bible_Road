@@ -12,6 +12,7 @@ export interface RankingEntry {
   nickname: string;
   totalProgressPercent: number;
   rereadCount: number;
+  progressUpdatedAt: number;
   currentBookName: string;
   currentChapter: number;
   currentBookTotalChapters: number;
@@ -46,6 +47,7 @@ export async function createUser(name: string, nickname: string): Promise<{ id: 
     currentBookId: firstBook.id,
     currentChapter: 0,
     totalProgressPercent: 0,
+    progressUpdatedAt: Date.now(),
     streakDays: 0,
     lastReadAt: null,
     lastExtraReadAt: null,
@@ -94,7 +96,8 @@ export async function setReminderSchedule(userId: string, reminderSchedule: Remi
 
 /**
  * 랭킹을 실시간으로 구독한다. 정렬 기준: 1) 회독수(rereadCount) 내림차순, 2) 같으면 총 진행률
- * (totalProgressPercent) 내림차순. Firestore 복합 색인 없이 클라이언트에서 정렬한다.
+ * (totalProgressPercent) 내림차순, 3) 그마저 같으면 그 진행률을 먼저 달성한(progressUpdatedAt이
+ * 더 이른) 사람이 위로 온다. Firestore 복합 색인 없이 클라이언트에서 정렬한다.
  * 반환값을 호출하면 구독이 해제된다.
  */
 export function subscribeToRanking(onChange: (ranking: RankingEntry[]) => void): () => void {
@@ -107,13 +110,20 @@ export function subscribeToRanking(onChange: (ranking: RankingEntry[]) => void):
         nickname: data.nickname,
         totalProgressPercent: data.totalProgressPercent,
         rereadCount: data.rereadCount,
+        // 기존(마이그레이션 이전) 유저는 이 필드가 없을 수 있어 가입 시각으로 대체한다.
+        progressUpdatedAt: data.progressUpdatedAt ?? data.createdAt,
         currentBookName: currentBook?.name ?? '',
         currentChapter: data.currentChapter,
         currentBookTotalChapters: currentBook?.totalChapters ?? 0,
       };
     });
 
-    entries.sort((a, b) => b.rereadCount - a.rereadCount || b.totalProgressPercent - a.totalProgressPercent);
+    entries.sort(
+      (a, b) =>
+        b.rereadCount - a.rereadCount ||
+        b.totalProgressPercent - a.totalProgressPercent ||
+        a.progressUpdatedAt - b.progressUpdatedAt
+    );
     onChange(entries);
   });
 }

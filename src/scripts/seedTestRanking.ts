@@ -93,6 +93,8 @@ async function seedTestRanking() {
       currentBookId: bookId,
       currentChapter,
       totalProgressPercent,
+      // 진행률이 같은 더미 유저끼리도 랭킹 동점자 처리(먼저 달성한 사람이 위로)가 보이도록 무작위로 흩어 넣는다.
+      progressUpdatedAt: Date.now() - randomInt(0, 730 * 86400000),
       streakDays: randomInt(0, 30),
       lastReadAt: null,
       lastExtraReadAt: null,

@@ -266,6 +266,9 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
   const totalChaptersReadOverall =
     otherBooksChaptersReadTotal + touched.reduce((sum, t) => sum + t.progress.chaptersRead.length, 0);
   userUpdates.totalProgressPercent = Math.round((totalChaptersReadOverall / TOTAL_BIBLE_CHAPTERS) * 1000) / 10;
+  // 랭킹에서 진행률이 같을 때 "먼저 그 진행률을 달성한 사람"을 가리는 기준. 아래 66권 완독
+  // 분기에서 totalProgressPercent를 0으로 다시 덮어써도 이 시각(now) 자체는 그대로 유효하다.
+  userUpdates.progressUpdatedAt = now;
 
   if (isCurrentBook) {
     if (lastTouched.progress.status === 'completed') {

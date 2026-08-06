@@ -20,6 +20,8 @@ export interface UserDoc {
   currentBookId: string;
   currentChapter: number;
   totalProgressPercent: number;
+  /** totalProgressPercent가 마지막으로 바뀐 시각. 랭킹에서 회독수·진행률이 모두 같으면 이 값이 더 이른(먼저 그 진척도를 달성한) 사람이 위로 온다. */
+  progressUpdatedAt: number;
   streakDays: number;
   lastReadAt: number | null;
   lastExtraReadAt: number | null;

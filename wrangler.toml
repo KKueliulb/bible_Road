@@ -6,15 +6,12 @@ compatibility_date = "2024-09-23"
 directory = "./dist"
 
 [observability]
-enabled = false
-invocation_logs = true
-
-[observability.traces]
-enabled = false
+enabled = true
 
 [observability.logs]
 enabled = true
 invocation_logs = true
+persist = true
 
 [observability.traces]
 enabled = false
