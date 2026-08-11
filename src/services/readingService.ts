@@ -52,14 +52,15 @@ export function isGraceExpired(
  * "N장 더 읽었어요!"는 상환액만 늘려서 이 합계를 줄인다 — 그래서 "읽었어요"를 눌러도 이 숫자는 안 바뀐다.
  * 화면을 열 때마다 이 함수로 그 자리에서 다시 계산해야 한다(저장된 값만 보면 액션 없이는 안 늘어난 것처럼 보임).
  *
- * 유예를 넘도록(대개 이틀) 방치하면 스트릭이 이미 끊긴 것으로 보고 밀린 장수 알림도 0으로
- * 표시한다(더 쌓아봐야 어차피 다음 "읽었어요!"에서 스트릭과 함께 정리되기 때문).
+ * 스트릭(유예 초과 여부)과 무관하게 항상 실시간으로 누적해서 보여준다 — 유예를 넘겼다고 화면에서
+ * 0으로 감춰버리면 "정상"처럼 보이다가 "읽었어요!"를 누르는 순간에야 갑자기 밀린 장수가 튀어나오는
+ * 문제가 있었다. 원금 확정(recordChaptersRead)은 계속 "읽었어요!"를 눌러야 일어나지만, 화면 표시는
+ * 그 확정 여부와 상관없이 지금 이 순간 밀린 공백을 그대로 보여준다.
  */
 export function computeLiveOverdueChapters(
   user: Pick<UserDoc, 'overdueChapters' | 'lastReadAt' | 'createdAt' | 'extraChaptersRepaid' | 'graceDaysLeft'>,
   now: number = Date.now()
 ): number {
-  if (isGraceExpired(user, now)) return 0;
   const ongoingGapChapters = ongoingGapMissedDays(user.lastReadAt, user.createdAt, now) * DAILY_CHAPTER_GOAL;
   const repaid = user.extraChaptersRepaid ?? 0;
   return Math.max(0, user.overdueChapters + ongoingGapChapters - repaid);
@@ -71,6 +72,14 @@ export function computeLiveStreakDays(
   now: number = Date.now()
 ): number {
   return isGraceExpired(user, now) ? 0 : user.streakDays;
+}
+
+/** 유예를 넘도록 방치하면 다음에 읽기 전까지는 화면에 남은 유예일수를 0(오늘까지)으로 보여준다. */
+export function computeLiveGraceDaysLeft(
+  user: Pick<UserDoc, 'lastReadAt' | 'createdAt' | 'graceDaysLeft'>,
+  now: number = Date.now()
+): number {
+  return isGraceExpired(user, now) ? 0 : user.graceDaysLeft;
 }
 
 export interface GoalSegment {

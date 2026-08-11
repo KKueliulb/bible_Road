@@ -11,6 +11,7 @@ import { hasPokedToday, logPoke } from '../../services/pokeLogsService';
 import { sendPokePush } from '../../services/pokeService';
 import { getUserById } from '../../services/usersService';
 import {
+  computeLiveGraceDaysLeft,
   computeLiveOverdueChapters,
   computeLiveStreakDays,
   computeTodayGoalSegments,
@@ -241,7 +242,7 @@ export default function ReadingScreen({ route }: Props) {
         isCompleted={isCompleted}
         streakDays={computeLiveStreakDays(user)}
       />
-      <StreakWarningBanner graceDaysLeft={user.graceDaysLeft} overdueChapters={liveOverdueChapters} />
+      <StreakWarningBanner graceDaysLeft={computeLiveGraceDaysLeft(user)} overdueChapters={liveOverdueChapters} />
       <ChapterChecklist totalChapters={book.totalChapters} chaptersRead={progress?.chaptersRead ?? []} />
 
       {!isCompleted && (
