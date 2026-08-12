@@ -1,0 +1,31 @@
+name = "bible-road-reminder-push"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+
+# 매일 두 번 실행된다: 23:00 UTC(= 08:00 KST, 다음날) "아침", 11:00 UTC(= 20:00 KST) "저녁".
+# 어느 쪽인지는 index.ts의 scheduled 핸들러가 event.cron 값으로 구분한다.
+[triggers]
+crons = ["0 23 * * *", "0 11 * * *"]
+
+# 비밀이 아닌 값. Firebase 프로젝트 ID는 공개돼도 문제없다(서비스 계정 키가 실제 인증 수단).
+[vars]
+FIREBASE_PROJECT_ID = "bible-roadmap-3b901"
+VAPID_SUBJECT = "mailto:example@example.com"
+
+# Cloudflare 대시보드 Logs(Observability)를 켠다 — 발송 이상(중복/누락) 발생 시 실제 호출 기록
+# (scheduled/fetch 여부, 시각)을 나중에 조회할 수 있도록. persist=true라 과거 기록도 남는다.
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+# 아래는 여기 적지 말고 `wrangler secret put <이름>` 으로 등록할 것:
+#   VAPID_PUBLIC_KEY
+#   VAPID_PRIVATE_KEY
+#   FIREBASE_CLIENT_EMAIL
+#   FIREBASE_PRIVATE_KEY

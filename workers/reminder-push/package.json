@@ -1,0 +1,17 @@
+{
+  "name": "bible-road-reminder-push",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "trigger": "node -e \"fetch('https://bible-road-reminder-push.bibleroad.workers.dev').then(r => r.json()).then(r => console.log(JSON.stringify(r, null, 2)))\""
+  },
+  "dependencies": {
+    "@block65/webcrypto-web-push": "1.0.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260729.1",
+    "typescript": "~5.9.3",
+    "wrangler": "4.115.0"
+  }
+}

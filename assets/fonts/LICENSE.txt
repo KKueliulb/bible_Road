@@ -1,0 +1,11 @@
+NanumSquareRoundR.ttf / NanumSquareRoundB.ttf
+
+Font: 나눔스퀘어라운드 (Nanum Square Round)
+Publisher: NAVER Corp.
+License: SIL Open Font License 1.1 (OFL-1.1)
+Source: https://hangeul.naver.com/font
+License text: https://scripts.sil.org/OFL
+
+Extracted from the npm package @kfonts/nanum-square-round
+(https://www.npmjs.com/package/@kfonts/nanum-square-round), which
+redistributes the original NAVER font files under the same license.

@@ -1,0 +1,92 @@
+import { BookDoc, Testament } from '../types/models';
+
+export interface BookSeed extends BookDoc {
+  id: string;
+}
+
+// 개역개정 기준 66권 순서/장수. 구약 39권(929장) + 신약 27권(260장) = 1,189장.
+export const BOOKS: BookSeed[] = [
+  { id: 'genesis', name: '창세기', testament: 'OT', order: 1, totalChapters: 50 },
+  { id: 'exodus', name: '출애굽기', testament: 'OT', order: 2, totalChapters: 40 },
+  { id: 'leviticus', name: '레위기', testament: 'OT', order: 3, totalChapters: 27 },
+  { id: 'numbers', name: '민수기', testament: 'OT', order: 4, totalChapters: 36 },
+  { id: 'deuteronomy', name: '신명기', testament: 'OT', order: 5, totalChapters: 34 },
+  { id: 'joshua', name: '여호수아', testament: 'OT', order: 6, totalChapters: 24 },
+  { id: 'judges', name: '사사기', testament: 'OT', order: 7, totalChapters: 21 },
+  { id: 'ruth', name: '룻기', testament: 'OT', order: 8, totalChapters: 4 },
+  { id: '1samuel', name: '사무엘상', testament: 'OT', order: 9, totalChapters: 31 },
+  { id: '2samuel', name: '사무엘하', testament: 'OT', order: 10, totalChapters: 24 },
+  { id: '1kings', name: '열왕기상', testament: 'OT', order: 11, totalChapters: 22 },
+  { id: '2kings', name: '열왕기하', testament: 'OT', order: 12, totalChapters: 25 },
+  { id: '1chronicles', name: '역대상', testament: 'OT', order: 13, totalChapters: 29 },
+  { id: '2chronicles', name: '역대하', testament: 'OT', order: 14, totalChapters: 36 },
+  { id: 'ezra', name: '에스라', testament: 'OT', order: 15, totalChapters: 10 },
+  { id: 'nehemiah', name: '느헤미야', testament: 'OT', order: 16, totalChapters: 13 },
+  { id: 'esther', name: '에스더', testament: 'OT', order: 17, totalChapters: 10 },
+  { id: 'job', name: '욥기', testament: 'OT', order: 18, totalChapters: 42 },
+  { id: 'psalms', name: '시편', testament: 'OT', order: 19, totalChapters: 150 },
+  { id: 'proverbs', name: '잠언', testament: 'OT', order: 20, totalChapters: 31 },
+  { id: 'ecclesiastes', name: '전도서', testament: 'OT', order: 21, totalChapters: 12 },
+  { id: 'songofsolomon', name: '아가', testament: 'OT', order: 22, totalChapters: 8 },
+  { id: 'isaiah', name: '이사야', testament: 'OT', order: 23, totalChapters: 66 },
+  { id: 'jeremiah', name: '예레미야', testament: 'OT', order: 24, totalChapters: 52 },
+  { id: 'lamentations', name: '예레미야애가', testament: 'OT', order: 25, totalChapters: 5 },
+  { id: 'ezekiel', name: '에스겔', testament: 'OT', order: 26, totalChapters: 48 },
+  { id: 'daniel', name: '다니엘', testament: 'OT', order: 27, totalChapters: 12 },
+  { id: 'hosea', name: '호세아', testament: 'OT', order: 28, totalChapters: 14 },
+  { id: 'joel', name: '요엘', testament: 'OT', order: 29, totalChapters: 3 },
+  { id: 'amos', name: '아모스', testament: 'OT', order: 30, totalChapters: 9 },
+  { id: 'obadiah', name: '오바댜', testament: 'OT', order: 31, totalChapters: 1 },
+  { id: 'jonah', name: '요나', testament: 'OT', order: 32, totalChapters: 4 },
+  { id: 'micah', name: '미가', testament: 'OT', order: 33, totalChapters: 7 },
+  { id: 'nahum', name: '나훔', testament: 'OT', order: 34, totalChapters: 3 },
+  { id: 'habakkuk', name: '하박국', testament: 'OT', order: 35, totalChapters: 3 },
+  { id: 'zephaniah', name: '스바냐', testament: 'OT', order: 36, totalChapters: 3 },
+  { id: 'haggai', name: '학개', testament: 'OT', order: 37, totalChapters: 2 },
+  { id: 'zechariah', name: '스가랴', testament: 'OT', order: 38, totalChapters: 14 },
+  { id: 'malachi', name: '말라기', testament: 'OT', order: 39, totalChapters: 4 },
+
+  { id: 'matthew', name: '마태복음', testament: 'NT', order: 40, totalChapters: 28 },
+  { id: 'mark', name: '마가복음', testament: 'NT', order: 41, totalChapters: 16 },
+  { id: 'luke', name: '누가복음', testament: 'NT', order: 42, totalChapters: 24 },
+  { id: 'john', name: '요한복음', testament: 'NT', order: 43, totalChapters: 21 },
+  { id: 'acts', name: '사도행전', testament: 'NT', order: 44, totalChapters: 28 },
+  { id: 'romans', name: '로마서', testament: 'NT', order: 45, totalChapters: 16 },
+  { id: '1corinthians', name: '고린도전서', testament: 'NT', order: 46, totalChapters: 16 },
+  { id: '2corinthians', name: '고린도후서', testament: 'NT', order: 47, totalChapters: 13 },
+  { id: 'galatians', name: '갈라디아서', testament: 'NT', order: 48, totalChapters: 6 },
+  { id: 'ephesians', name: '에베소서', testament: 'NT', order: 49, totalChapters: 6 },
+  { id: 'philippians', name: '빌립보서', testament: 'NT', order: 50, totalChapters: 4 },
+  { id: 'colossians', name: '골로새서', testament: 'NT', order: 51, totalChapters: 4 },
+  { id: '1thessalonians', name: '데살로니가전서', testament: 'NT', order: 52, totalChapters: 5 },
+  { id: '2thessalonians', name: '데살로니가후서', testament: 'NT', order: 53, totalChapters: 3 },
+  { id: '1timothy', name: '디모데전서', testament: 'NT', order: 54, totalChapters: 6 },
+  { id: '2timothy', name: '디모데후서', testament: 'NT', order: 55, totalChapters: 4 },
+  { id: 'titus', name: '디도서', testament: 'NT', order: 56, totalChapters: 3 },
+  { id: 'philemon', name: '빌레몬서', testament: 'NT', order: 57, totalChapters: 1 },
+  { id: 'hebrews', name: '히브리서', testament: 'NT', order: 58, totalChapters: 13 },
+  { id: 'james', name: '야고보서', testament: 'NT', order: 59, totalChapters: 5 },
+  { id: '1peter', name: '베드로전서', testament: 'NT', order: 60, totalChapters: 5 },
+  { id: '2peter', name: '베드로후서', testament: 'NT', order: 61, totalChapters: 3 },
+  { id: '1john', name: '요한일서', testament: 'NT', order: 62, totalChapters: 5 },
+  { id: '2john', name: '요한이서', testament: 'NT', order: 63, totalChapters: 1 },
+  { id: '3john', name: '요한삼서', testament: 'NT', order: 64, totalChapters: 1 },
+  { id: 'jude', name: '유다서', testament: 'NT', order: 65, totalChapters: 1 },
+  { id: 'revelation', name: '요한계시록', testament: 'NT', order: 66, totalChapters: 22 },
+];
+
+export const TOTAL_BIBLE_CHAPTERS = BOOKS.reduce((sum, book) => sum + book.totalChapters, 0);
+
+const CANONICAL_SEQUENCE = [...BOOKS].sort((a, b) => a.order - b.order);
+
+/**
+ * 온보딩에서 고른 시작 성경(구약/신약) 기준으로 완독 시 다음 책 자동 진행 순서를 재배열한다.
+ * 'OT'(기본값): 창세기(1)~말라기(39)~마태복음(40)~요한계시록(66) — 정경 순서 그대로.
+ * 'NT': 마태복음(1)~요한계시록(27)~창세기(28)~말라기(66) — 신약을 앞으로 당김.
+ */
+export function getPersonalizedSequence(startTestament: Testament): BookSeed[] {
+  if (startTestament === 'OT') return CANONICAL_SEQUENCE;
+  const nt = CANONICAL_SEQUENCE.filter((book) => book.testament === 'NT');
+  const ot = CANONICAL_SEQUENCE.filter((book) => book.testament === 'OT');
+  return [...nt, ...ot];
+}

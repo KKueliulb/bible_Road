@@ -1,0 +1,55 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env
+.env*.local
+
+# Firebase Admin SDK service account (절대 커밋 금지)
+serviceAccountKey.json
+
+# Firebase Android 앱 설정 (프로젝트마다 다름, Firebase 콘솔에서 직접 받아야 함)
+google-services.json
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+
+# Cloud Functions 컴파일 결과물
+functions/lib/
+
+# Cloudflare Worker(웹푸시 발송 서버) 로컬 개발 파일
+workers/reminder-push/.wrangler/
+workers/reminder-push/.dev.vars
