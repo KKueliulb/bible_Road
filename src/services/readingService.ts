@@ -242,20 +242,19 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
 
     if (user.lastReadAt === null) {
       streakDays = 1;
-      graceDaysLeft = user.graceDaysLeft;
+      graceDaysLeft = 2;
     } else if (missedDays <= 0) {
-      // 어제 읽고 오늘도 읽음 - 연속 기록. 유예는 회복되지 않고 남은 만큼 그대로 유지된다.
+      // 어제 읽고 오늘도 읽음 - 연속 기록, 유예 서서히 회복
       streakDays = user.streakDays + 1;
-      graceDaysLeft = user.graceDaysLeft;
+      graceDaysLeft = Math.min(2, user.graceDaysLeft + 1);
     } else if (user.graceDaysLeft >= missedDays) {
-      // 며칠 건너뛰었지만 남은 유예로 커버 가능 - 그만큼 유예를 소모하고 스트릭은 유지
+      // 며칠 건너뛰었지만 유예로 커버 가능
       streakDays = user.streakDays + 1;
       graceDaysLeft = user.graceDaysLeft - missedDays;
     } else {
-      // 유예를 다 써도 못 막음 - 스트릭 리셋. 유예는 평생 한 번 주어지는 것이라 여기서 다시
-      // 채워주지 않고 0으로 소진된 채 유지한다(이후로는 하루만 밀려도 바로 스트릭이 끊긴다).
+      // 유예 초과 - 스트릭 리셋
       streakDays = 1;
-      graceDaysLeft = 0;
+      graceDaysLeft = 2;
     }
 
     // 지금까지 확정 안 됐던 공백을 원금에 확정 반영 (이후로는 이 값이 실시간 계산의 기준이 됨)
@@ -296,8 +295,7 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
         ]);
       } else {
         // 66권 전체 완독 - 연속 스트릭(streakDays/lastReadAt)만 남기고 나머지 진행 상황을 전부 초기화한
-        // 뒤 자동으로 다음 회독을 시작하고 회독수(rereadCount)를 올린다. graceDaysLeft는 평생 한 번
-        // 주어지는 유예라 여기서도 다시 채워주지 않고 지금까지 남은/소진된 값을 그대로 이어간다.
+        // 뒤 자동으로 다음 회독을 시작하고 회독수(rereadCount)를 올린다.
         const firstBook = sequence[0];
         userUpdates.currentBookId = firstBook.id;
         userUpdates.currentTestament = firstBook.testament;
@@ -305,6 +303,7 @@ export async function recordChaptersRead(params: RecordReadingParams): Promise<R
         userUpdates.totalProgressPercent = 0;
         userUpdates.overdueChapters = 0;
         userUpdates.extraChaptersRepaid = 0;
+        userUpdates.graceDaysLeft = 2;
         userUpdates.rereadCount = user.rereadCount + 1;
         await Promise.all([
           removeParticipant(book.id, userId),
